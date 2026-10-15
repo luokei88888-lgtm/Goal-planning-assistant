@@ -1,0 +1,265 @@
+//! 周复盘：本周（周一至周日）统计 + 感受 + 助手点评。
+
+use chrono::{Datelike, Duration, NaiveDate};
+use rusqlite::{params, Connection, OptionalExtension};
+use serde::{Deserialize, Serialize};
+
+use crate::service::{days_of, e, parse_date, version_for};
+
+type R<T> = Result<T, String>;
+
+const WD: [&str; 7] = ["一", "二", "三", "四", "五", "六", "日"];
+
+#[derive(Debug, Serialize)]
+pub struct Cell {
+    pub date: String,
+    pub weekday: String,
+    /// done / missed / today / future / none
+    pub state: String,
+    pub title: Option<String>,
+    pub is_rest: bool,
+    pub day_index: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct Review {
+    pub id: i64,
+    pub goal_id: i64,
+    pub week_start: String,
+    pub done: i64,
+    pub due: i64,
+    pub missed: i64,
+    pub went_well: String,
+    pub hard: String,
+    pub next_plan: String,
+    pub ai_comment: Option<String>,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct WeekView {
+    pub goal_id: i64,
+    pub goal_title: String,
+    pub readonly: bool,
+    pub week_start: String,
+    pub week_end: String,
+    pub is_current: bool,
+    pub done: i64,
+    pub due: i64,
+    pub missed: i64,
+    pub cells: Vec<Cell>,
+    pub review: Option<Review>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct ReviewText {
+    #[serde(default)]
+    pub went_well: String,
+    #[serde(default)]
+    pub hard: String,
+    #[serde(default)]
+    pub next_plan: String,
+}
+
+fn fmt(d: NaiveDate) -> String {
+    d.format("%Y-%m-%d").to_string()
+}
+
+pub fn monday_of(d: NaiveDate) -> NaiveDate {
+    d - Duration::days(d.weekday().num_days_from_monday() as i64)
+}
+
+fn row(r: &rusqlite::Row) -> rusqlite::Result<Review> {
+    Ok(Review {
+        id: r.get(0)?,
+        goal_id: r.get(1)?,
+        week_start: r.get(2)?,
+        done: r.get(3)?,
+        due: r.get(4)?,
+        missed: r.get(5)?,
+        went_well: r.get(6)?,
+        hard: r.get(7)?,
+        next_plan: r.get(8)?,
+        ai_comment: r.get(9)?,
+        updated_at: r.get(10)?,
+    })
+}
+const COLS: &str = "id, goal_id, week_start, done, due, missed, went_well, hard, next_plan, ai_comment, updated_at";
+
+pub fn get_review(conn: &Connection, goal_id: i64, week_start: &str) -> R<Option<Review>> {
+    conn.query_row(&format!("SELECT {COLS} FROM weekly_reviews WHERE goal_id=?1 AND week_start=?2"), params![goal_id, week_start], row)
+        .optional()
+        .map_err(e)
+}
+
+pub fn list_reviews(conn: &Connection, goal_id: i64) -> R<Vec<Review>> {
+    let mut st = conn.prepare(&format!("SELECT {COLS} FROM weekly_reviews WHERE goal_id=?1 ORDER BY week_start DESC")).map_err(e)?;
+    let rows = st.query_map([goal_id], row).map_err(e)?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(e)
+}
+
+/// week_start 可以是这一周里的任意一天；None = 本周
+pub fn week_view(conn: &Connection, goal_id: i64, week_start: Option<&str>, today: &str) -> R<WeekView> {
+    let (goal_title, status): (String, String) = conn
+        .query_row("SELECT title, status FROM goals WHERE id=?1", [goal_id], |r| Ok((r.get(0)?, r.get(1)?)))
+        .optional()
+        .map_err(e)?
+        .ok_or("找不到这个目标")?;
+    let t = parse_date(today)?;
+    let mon = monday_of(match week_start {
+        Some(s) => parse_date(s)?,
+        None => t,
+    });
+    let v = version_for(conn, goal_id, status != "archived")?;
+    let days = match &v {
+        Some(v) => days_of(conn, v.id)?,
+        None => vec![],
+    };
+    let (mut done, mut due, mut missed) = (0, 0, 0);
+    let mut cells = Vec::with_capacity(7);
+    for i in 0..7 {
+        let date = fmt(mon + Duration::days(i));
+        let d = days.iter().find(|x| x.date == date);
+        let state = match d {
+            None => "none",
+            Some(x) => {
+                if date.as_str() <= today {
+                    due += 1;
+                }
+                if x.checked {
+                    done += 1;
+                    "done"
+                } else if date.as_str() < today {
+                    missed += 1;
+                    "missed"
+                } else if date == today {
+                    "today"
+                } else {
+                    "future"
+                }
+            }
+        };
+        cells.push(Cell {
+            weekday: WD[i as usize].into(),
+            state: state.into(),
+            title: d.map(|x| x.title.clone()),
+            is_rest: d.map(|x| x.is_rest).unwrap_or(false),
+            day_index: d.map(|x| x.day_index),
+            date,
+        });
+    }
+    let ws = fmt(mon);
+    Ok(WeekView {
+        goal_id,
+        goal_title,
+        readonly: status == "archived",
+        review: get_review(conn, goal_id, &ws)?,
+        is_current: mon == monday_of(t),
+        week_end: fmt(mon + Duration::days(6)),
+        week_start: ws,
+        done,
+        due,
+        missed,
+        cells,
+    })
+}
+
+/// 保存手写感受（同一周覆盖），同时记下当时的统计快照
+pub fn save_review(conn: &Connection, goal_id: i64, week_start: &str, text: &ReviewText, today: &str, now: i64) -> R<Review> {
+    let w = week_view(conn, goal_id, Some(week_start), today)?;
+    if w.week_start.as_str() > today {
+        return Err("这一周还没开始，不能复盘".into());
+    }
+    let clip = |s: &str| s.trim().chars().take(2000).collect::<String>();
+    conn.execute(
+        "INSERT INTO weekly_reviews (goal_id, week_start, done, due, missed, went_well, hard, next_plan, created_at, updated_at)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?9)
+         ON CONFLICT(goal_id, week_start) DO UPDATE SET done=excluded.done, due=excluded.due, missed=excluded.missed,
+           went_well=excluded.went_well, hard=excluded.hard, next_plan=excluded.next_plan, updated_at=excluded.updated_at",
+        params![goal_id, w.week_start, w.done, w.due, w.missed, clip(&text.went_well), clip(&text.hard), clip(&text.next_plan), now],
+    )
+    .map_err(e)?;
+    get_review(conn, goal_id, &w.week_start)?.ok_or_else(|| "保存失败".into())
+}
+
+pub fn set_ai_comment(conn: &Connection, goal_id: i64, week_start: &str, comment: &str, now: i64) -> R<Review> {
+    conn.execute(
+        "UPDATE weekly_reviews SET ai_comment=?3, updated_at=?4 WHERE goal_id=?1 AND week_start=?2",
+        params![goal_id, week_start, comment.trim(), now],
+    )
+    .map_err(e)?;
+    get_review(conn, goal_id, week_start)?.ok_or_else(|| "找不到这次复盘".into())
+}
+
+pub const REVIEW_SYSTEM: &str = "你是「目标计划助手」的复盘教练。根据用户这一周的执行数据和自述感受，用中文给出简洁、具体、鼓励式的点评：\n1. 一句肯定（基于真实数据，不要空夸）；\n2. 本周问题的原因分析（1-2 点）；\n3. 下周 2-4 条可执行的建议，如果需要调整计划（降强度、换内容、调休息日、延长周期等），要明确写出怎么调。\n不要输出 JSON 或代码块，总共不超过 350 字。";
+
+pub fn review_user_prompt(conn: &Connection, goal_id: i64, week_start: &str, today: &str) -> R<String> {
+    let w = week_view(conn, goal_id, Some(week_start), today)?;
+    let r = w.review.clone().unwrap_or(Review {
+        id: 0, goal_id, week_start: w.week_start.clone(), done: 0, due: 0, missed: 0,
+        went_well: String::new(), hard: String::new(), next_plan: String::new(), ai_comment: None, updated_at: 0,
+    });
+    let mut s = format!(
+        "目标：{}\n本周：{} 至 {}（今天 {today}）\n完成 {} / 应完成 {}，漏打 {}\n",
+        w.goal_title, w.week_start, w.week_end, w.done, w.due, w.missed
+    );
+    for c in &w.cells {
+        let st = match c.state.as_str() {
+            "done" => "已完成",
+            "missed" => "漏打",
+            "today" => "今天未打卡",
+            "future" => "未到",
+            _ => "无计划",
+        };
+        s += &format!("周{} {} {}{} [{st}]\n", c.weekday, c.date, c.title.as_deref().unwrap_or("-"), if c.is_rest { "（休息）" } else { "" });
+    }
+    let or = |x: &str| if x.is_empty() { "（没写）".to_string() } else { x.to_string() };
+    s += &format!("\n顺利的：{}\n困难的：{}\n下周打算：{}", or(&r.went_well), or(&r.hard), or(&r.next_plan));
+    Ok(s)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::service::*;
+
+    #[test]
+    fn week_stats_and_reviews() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&conn).unwrap();
+        // 2026-10-14 是周三；示例从 10-07 开始，第 4 天(10-10)漏打
+        let id = import_sample(&mut conn, "2026-10-14", 0).unwrap();
+        let w = week_view(&conn, id, None, "2026-10-14").unwrap();
+        assert_eq!((w.week_start.as_str(), w.week_end.as_str(), w.is_current), ("2026-10-12", "2026-10-18", true));
+        assert_eq!((w.done, w.due, w.missed), (2, 3, 0));
+        let states: Vec<_> = w.cells.iter().map(|c| c.state.as_str()).collect();
+        assert_eq!(states, ["done", "done", "today", "future", "future", "future", "future"]);
+        assert_eq!(w.cells[0].weekday, "一");
+
+        let today = get_goal_detail(&conn, id, "2026-10-14", 0).unwrap().today.unwrap().id;
+        check_in(&conn, today, "2026-10-14", 1).unwrap();
+        let w = week_view(&conn, id, None, "2026-10-14").unwrap();
+        assert_eq!((w.done, w.due, w.missed), (3, 3, 0));
+
+        // 上一周：10-05/06 没有计划，10-07..10-11 五天，漏 1
+        let p = week_view(&conn, id, Some("2026-10-08"), "2026-10-14").unwrap();
+        assert_eq!(p.week_start, "2026-10-05");
+        assert_eq!((p.done, p.due, p.missed), (4, 5, 1));
+        assert_eq!(p.cells[0].state, "none");
+        assert_eq!(p.cells[5].state, "missed");
+
+        // 保存 / 覆盖 / 点评 / 历史
+        let t = ReviewText { went_well: "坚持了".into(), hard: "周六加班".into(), next_plan: "".into() };
+        let r = save_review(&conn, id, "2026-10-05", &t, "2026-10-14", 2).unwrap();
+        assert_eq!((r.done, r.due, r.missed), (4, 5, 1));
+        save_review(&conn, id, "2026-10-12", &ReviewText { went_well: "a".into(), ..Default::default() }, "2026-10-14", 3).unwrap();
+        save_review(&conn, id, "2026-10-14", &ReviewText { went_well: "b".into(), ..Default::default() }, "2026-10-14", 4).unwrap();
+        let r = set_ai_comment(&conn, id, "2026-10-12", "不错", 5).unwrap();
+        assert_eq!((r.went_well.as_str(), r.ai_comment.as_deref()), ("b", Some("不错")));
+        let all = list_reviews(&conn, id).unwrap();
+        assert_eq!(all.len(), 2);
+        assert_eq!(all[0].week_start, "2026-10-12");
+        assert!(save_review(&conn, id, "2026-10-20", &t, "2026-10-14", 6).is_err());
+        assert!(review_user_prompt(&conn, id, "2026-10-05", "2026-10-14").unwrap().contains("周六加班"));
+    }
+}

@@ -1,0 +1,31 @@
+/* 玻璃拟态·极光（默认） */
+html[data-theme="glass"] {
+  --t-font: "Inter", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  --t-app-bg: radial-gradient(38% 46% at 12% 18%, rgba(124,58,237,.72), transparent 72%),
+              radial-gradient(36% 44% at 88% 12%, rgba(6,182,212,.62), transparent 72%),
+              radial-gradient(44% 46% at 72% 96%, rgba(236,72,153,.62), transparent 72%), #0d0b1f;
+  --t-glow-display: block;
+  --t-backdrop: blur(24px) saturate(140%);
+  --t-panel-bg: rgba(255,255,255,.08); --t-panel-border: 1px solid rgba(255,255,255,.18);
+  --t-panel-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 12px 40px rgba(0,0,0,.25);
+  --t-radius: 20px; --t-side-bg: rgba(255,255,255,.08); --t-side-border: 1px solid rgba(255,255,255,.18);
+  --t-side-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 12px 40px rgba(0,0,0,.25); --t-side-radius: 22px;
+  --t-hero-bg: linear-gradient(135deg, rgba(167,139,250,.16), rgba(34,211,238,.10)), rgba(255,255,255,.07);
+  --t-modal-bg: rgba(30,26,60,.78); --t-modal-solid: #1e1a3c; --t-modal-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 24px 60px rgba(0,0,0,.45); --t-mask: rgba(8,6,20,.45);
+  --t-btn-bg: rgba(255,255,255,.08); --t-btn-border: 1px solid rgba(255,255,255,.18); --t-btn-shadow: inset 0 1px 0 rgba(255,255,255,.18);
+  --t-btn-radius: 999px; --t-btn-hover: rgba(255,255,255,.16); --t-btn-hover-border: rgba(255,255,255,.35);
+  --t-pri-bg: linear-gradient(135deg, #a78bfa, #22d3ee); --t-pri-color: #0d0b1f; --t-pri-border: none;
+  --t-pri-shadow: 0 8px 24px rgba(34,211,238,.4); --t-pri-shadow-plain: 0 6px 18px rgba(0,0,0,.25); --t-pri-radius: 999px;
+  --t-accent: #22d3ee; --t-danger: linear-gradient(135deg, #fb7185, #e11d48);
+  --t-nav-on-bg: rgba(255,255,255,.16); --t-nav-on-color: #ffffff; --t-nav-on-border: 1px solid rgba(255,255,255,.28);
+  --t-nav-on-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 6px 20px rgba(0,0,0,.2); --t-nav-on-radius: 14px;
+  --t-bar-bg: rgba(255,255,255,.12); --t-fill: linear-gradient(90deg, #a78bfa, #22d3ee); --t-fill-green: linear-gradient(90deg, #22d3ee, #34d399);
+  --t-input-bg: rgba(255,255,255,.06); --t-input-border: 1px solid rgba(255,255,255,.18); --t-input-shadow: none;
+  --t-tag-bg: rgba(255,255,255,.1); --t-tag-border: 1px solid rgba(255,255,255,.22); --t-tag-color: #e9e6ff; --t-tag-radius: 999px;
+  --t-user-bg: linear-gradient(135deg, rgba(167,139,250,.85), rgba(34,211,238,.85)); --t-user-color: #0d0b1f;
+  --t-scroll: rgba(255,255,255,.28); --t-switch-on: linear-gradient(90deg,#a78bfa,#22d3ee); --t-green-rgb: 52,211,153;
+}
+html[data-theme="glass"] .sidebar { margin: 0; }
+html[data-theme="glass"] .bg-glow.g1 { background: rgba(236,72,153,.35); }
+html[data-theme="glass"] .bg-glow.g2 { background: rgba(6,182,212,.30); }
+html[data-theme="glass"] .brand-name { background: linear-gradient(90deg,#c4b5fd,#67e8f9) !important; -webkit-background-clip: text !important; background-clip: text !important; -webkit-text-fill-color: transparent !important; }

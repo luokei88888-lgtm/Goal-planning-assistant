@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="glass">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>目标计划助手</title>
+    <script>
+      // 首帧前套用上次的主题，避免闪烁（以数据库为准，启动后再同步）
+      (function () {
+        var ok = ["glass", "bento", "brutal", "clay", "neu", "ink", "neon"], t = "glass";
+        try { var v = localStorage.getItem("gpa-theme"); if (ok.indexOf(v) >= 0) t = v; } catch (e) {}
+        document.documentElement.setAttribute("data-theme", t);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,272 @@
+import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { Activity, RefreshCw, CalendarCheck, History, X, CircleCheck, CloudRain, Sparkles, Lock, ChevronLeft, Undo2, Archive, Coffee, ArchiveRestore, Bell, BellOff, Plus, Trash2, BookmarkPlus, Trophy } from "lucide-react";
+import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats } from "../lib/tauri";
+
+function ReminderModal({ goalId, title, onClose, onSaved }: { goalId: number; title: string; onClose: () => void; onSaved: (r: GoalReminders) => void }) {
+  const [on, setOn] = useState(false);
+  const [times, setTimes] = useState<string[]>([]);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    getGoalReminders(goalId).then((r) => { setOn(r.enabled); setTimes(r.times.length ? r.times : ["20:00"]); }).catch((e) => setErr(String(e)));
+  }, [goalId]);
+  const save = async () => {
+    setBusy(true); setErr("");
+    try { onSaved(await saveGoalReminders(goalId, on, times.filter((t) => t))); } catch (e) { setErr(String(e)); } finally { setBusy(false); }
+  };
+  return createPortal(
+    <div className="modal-mask" onClick={onClose}>
+      <div className="plan-modal remind-modal" onClick={(e) => e.stopPropagation()}>
+        <header className="plan-head">
+          <div><div className="plan-kicker"><Bell size={16} />打卡提醒</div><h2>{title}</h2></div>
+          <button type="button" className="icon-btn" title="关闭" onClick={onClose}><X size={20} /></button>
+        </header>
+        <div className="plan-body">
+          <label className="switch-row">
+            <span>开启提醒<small>到点且今天有计划、不是休息日、还没打卡时，弹 Windows 通知；每个时间当天只提醒一次</small></span>
+            <input type="checkbox" className="switch" checked={on} onChange={(e) => setOn(e.target.checked)} />
+          </label>
+          <div className={`time-list ${on ? "" : "off"}`}>
+            {times.map((t, i) => (
+              <div key={i} className="time-item">
+                <Bell size={16} />
+                <input type="time" value={t} onChange={(e) => setTimes(times.map((x, k) => (k === i ? e.target.value : x)))} />
+                {times.length > 1 && <button type="button" className="icon-plain" title="删除" onClick={() => setTimes(times.filter((_, k) => k !== i))}><Trash2 size={16} /></button>}
+              </div>
+            ))}
+            {times.length < 6 && <button type="button" className="ghost-btn neon-cyan sm" onClick={() => setTimes([...times, "21:00"])}><Plus size={16} />添加时间</button>}
+          </div>
+          <div className="muted small">电脑睡眠错过提醒时间超过 30 分钟就不再补发。全局开关在「设置」里。</div>
+          {err && <div className="error-line">{err}</div>}
+        </div>
+        <footer className="plan-foot">
+          <button type="button" className="ghost-btn wide" onClick={onClose}>取消</button>
+          <button type="button" className="checkin-btn small" disabled={busy} onClick={save}>保存</button>
+        </footer>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+type Props = { goalId: number; onBack: () => void; onRevise: () => void; onReview: () => void };
+
+const ts = (s: number | null) => {
+  if (!s) return "";
+  const t = new Date(s * 1000);
+  return `${t.getMonth() + 1}月${t.getDate()}日 ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
+};
+
+function VersionsModal({ goalId, onClose }: { goalId: number; onClose: () => void }) {
+  const [list, setList] = useState<VersionInfo[]>([]);
+  const [sel, setSel] = useState<number | null>(null);
+  const [days, setDays] = useState<DayItem[]>([]);
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    listVersions(goalId).then((l) => { setList(l); if (l[0]) setSel(l[0].version_no); }).catch((e) => setErr(String(e)));
+  }, [goalId]);
+  useEffect(() => { if (sel !== null) versionDays(goalId, sel).then(setDays).catch((e) => setErr(String(e))); }, [goalId, sel]);
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [onClose]);
+  const cur = list.find((v) => v.version_no === sel);
+  return createPortal(
+    <div className="modal-mask" onClick={onClose}>
+      <div className="plan-modal" onClick={(e) => e.stopPropagation()}>
+        <header className="plan-head">
+          <div><div className="plan-kicker"><History size={16} />版本历史 · 只读</div><h2>共 {list.length} 个版本</h2></div>
+          <button type="button" className="icon-btn" title="关闭" onClick={onClose}><X size={20} /></button>
+        </header>
+        {err && <div className="error-line">{err}</div>}
+        <div className="ver-tabs">
+          {list.map((v) => (
+            <button key={v.version_no} type="button" className={`ver-tab ${v.version_no === sel ? "on" : ""} ${v.status === "active" ? "live" : ""}`}
+              onClick={() => setSel(v.version_no)}>
+              v{v.version_no}<small>{v.status === "active" ? "生效中" : "已归档"}</small>
+            </button>
+          ))}
+        </div>
+        {cur && (
+          <div className="plan-meta">
+            <div><b>周期</b>{md(cur.start_date)} 至 {md(cur.end_date)} · {cur.total} 天 · 已打卡 {cur.done} 天</div>
+            <div><b>来源</b>{cur.source === "chat" ? "聊天生成" : "手动/示例"} · 生效于 {ts(cur.activated_at ?? cur.created_at)}</div>
+            {cur.summary && <div><b>说明</b>{cur.summary}</div>}
+          </div>
+        )}
+        <div className="plan-body">
+          {days.map((x) => (
+            <div key={x.id} className={`plan-day ${x.is_rest ? "rest" : ""}`}>
+              <div className="pd-left"><div className="pd-n">第{x.day_index}天</div><div className="pd-date">{md(x.date)}</div></div>
+              <div className="pd-main">
+                <div className="pd-title">{x.is_rest && <Coffee size={15} />}{x.title}{x.is_rest && <em>休息日</em>}
+                  {x.checked && <span className="ck-tag">{x.kind === "make_up" ? "补打" : "已打卡"}</span>}</div>
+                {x.detail && <div className="pd-detail">{x.detail}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+const unlockText = (date: string, idx: number) => (idx === 0 ? "明日解锁" : idx === 1 ? "后日解锁" : `${md(date)}解锁`);
+
+export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
+  const [showVers, setShowVers] = useState(false);
+  const [rem, setRem] = useState<GoalReminders | null>(null);
+  const [showRem, setShowRem] = useState(false);
+  useEffect(() => { getGoalReminders(goalId).then(setRem).catch(() => {}); }, [goalId]);
+  const [d, setD] = useState<GoalDetail | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [okMsg, setOkMsg] = useState("");
+  const saveTpl = async () => {
+    if (!d) return;
+    const name = window.prompt("模板名称（以后可在「模板库」里一键使用）", d.title);
+    if (name === null) return;
+    setError(""); setOkMsg("");
+    try { await saveGoalAsTemplate(goalId, name); setOkMsg(`已存为模板「${name.trim() || d.title}」，可在目标页「模板库」查看`); }
+    catch (e) { setError(String(e)); }
+  };
+
+  const [sum, setSum] = useState<{ done: number; due: number; rate: number | null; longest: number } | null>(null);
+  const load = useCallback(() => getGoalDetail(goalId).then((x) => {
+    setD(x);
+    if (x.status === "completed") {
+      // 完成总结：完成率（不含休息日）与最长连续，来自统计
+      getStats(goalId).then((s) => {
+        const r = s.ranking.find((y) => y.id === goalId);
+        setSum(r ? { done: r.done, due: r.due, rate: r.rate, longest: s.longest_streak } : null);
+      }).catch(() => setSum(null));
+    } else setSum(null);
+  }).catch((e) => setError(String(e))), [goalId]);
+  useEffect(() => { load(); }, [load]);
+
+  const run = async (fn: () => Promise<unknown>) => {
+    setBusy(true); setError("");
+    try { await fn(); await load(); } catch (e) { setError(String(e)); } finally { setBusy(false); }
+  };
+
+  if (!d) return <div className="page">{error ? <div className="error-line">{error}</div> : <div className="muted">加载中…</div>}</div>;
+
+  const pct = d.total ? Math.round((d.done / d.total) * 100) : 0;
+  const t = d.today;
+  const ro = d.readonly;
+
+  return (
+    <div className="page detail">
+      <header className="gd-head">
+        <div className="gd-title-row">
+          <button type="button" className="gd-btn gd-back" onClick={onBack} title="返回目标"><ChevronLeft size={16} />返回</button>
+          <h1 className="page-title gd-title">{d.title}</h1>
+          {d.version_no && (
+            <button type="button" title="查看版本历史" onClick={() => setShowVers(true)} className={`ver-pill clickable gd-pill ${ro ? "neon-cyan" : "neon-pink"}`}><Activity size={16} />v{d.version_no}{ro ? "已归档" : "生效"}<History size={14} /></button>
+          )}
+        </div>
+        <div className="gd-actions">
+          {!ro && d.status !== "completed" && (
+            <button type="button" className={`gd-btn ${rem?.enabled ? "on" : ""}`} title={rem?.enabled ? `打卡提醒 ${rem.times.join(" ")}` : "打卡提醒"} onClick={() => setShowRem(true)}>
+              {rem?.enabled ? <Bell size={16} /> : <BellOff size={16} />}<span className="gd-lbl">{rem?.enabled ? `提醒 ${rem.times.join(" ")}` : "提醒"}</span>
+            </button>
+          )}
+          <button type="button" className="gd-btn" title="周复盘" onClick={onReview}><CalendarCheck size={16} /><span className="gd-lbl">周复盘</span></button>
+          <button type="button" className="gd-btn" title="把当前方案存为模板" onClick={saveTpl}><BookmarkPlus size={16} /><span className="gd-lbl">存为模板</span></button>
+          {!ro && <button type="button" className="gd-btn primary" title="改方案" onClick={onRevise}><RefreshCw size={16} /><span className="gd-lbl">改方案</span></button>}
+          {d.status === "archived" && (
+            <button type="button" className="gd-btn primary" title="恢复目标" disabled={busy}
+              onClick={() => { if (confirm("恢复后目标回到「进行中」，最新版本重新生效，可以继续打卡。确定恢复？")) run(() => restoreGoal(goalId)); }}>
+              <ArchiveRestore size={16} /><span className="gd-lbl">恢复</span>
+            </button>
+          )}
+          {!ro && (
+            <button type="button" className="gd-btn weak gd-end" title="归档目标（只读保留记录）" disabled={busy}
+              onClick={() => { if (confirm("归档后只能查看、不能再打卡，打卡记录会保留。确定归档？")) run(async () => { await archiveGoal(goalId); onBack(); }); }}>
+              <Archive size={16} /><span className="gd-lbl">归档</span>
+            </button>
+          )}
+        </div>
+      </header>
+
+      {error && <div className="error-line">{error}</div>}
+      {okMsg && <div className="ok-line">{okMsg}</div>}
+      {showRem && <ReminderModal goalId={goalId} title={d.title} onClose={() => setShowRem(false)} onSaved={(r) => { setRem(r); setShowRem(false); }} />}
+      {showVers && <VersionsModal goalId={goalId} onClose={() => setShowVers(false)} />}
+
+      <section className={`today-card ${d.status === "completed" ? "completed" : ""}`}>
+        {d.status === "completed" ? (
+          <div className="done-summary">
+            <div className="today-date"><span className="done-badge big"><Trophy size={15} />已完成</span><span>{d.start_date && d.end_date ? `${md(d.start_date)} – ${md(d.end_date)}` : ""}</span></div>
+            <h2 className="today-task"><Trophy size={34} className="green-text" /> 计划已全部结束</h2>
+            <div className="done-kpis">
+              <div><b>{sum ? `${sum.done}/${sum.due}` : `${d.done}/${d.total}`}</b><span>完成天数</span></div>
+              <div><b className="green-text">{sum?.rate != null ? `${Math.round(sum.rate * 100)}%` : `${pct}%`}</b><span>完成率</span></div>
+              <div><b>{sum ? sum.longest : "–"}<small>天</small></b><span>最长连续</span></div>
+            </div>
+            <p className="today-note">{d.missed.length ? `还有 ${d.missed.length} 天漏打，可以在下方补打。` : "每一天都完成了，太棒了！"}想继续？用「改方案」延长计划会回到进行中。</p>
+          </div>
+        ) : t ? (
+          <>
+            <div className="today-date"><span>{md(t.date)} 第{t.day_index}天{t.is_rest ? " · 休息日" : ""}</span></div>
+            <h2 className="today-task">{t.title}</h2>
+            <p className="today-note">{t.detail || " "}</p>
+            {ro ? (
+              <div className="muted">归档版本只读{t.checked ? " · 当天已完成" : ""}</div>
+            ) : (
+              <button type="button" className={`checkin-btn ${t.checked ? "done" : ""}`} disabled={busy}
+                onClick={() => run(() => (t.checked ? undoCheckIn(t.id) : checkIn(t.id)))}>
+                {t.checked ? <>已完成 · 取消打卡<Undo2 size={26} /></> : <>完成今天<CircleCheck size={30} /></>}
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="today-date"><span>今天</span></div>
+            <h2 className="today-task"><Coffee size={34} /> 今天没有计划</h2>
+            <p className="today-note">
+              {d.start_date && d.end_date ? `计划周期 ${d.start_date} 至 ${d.end_date}` : "这个目标还没有生效的计划"}
+            </p>
+          </>
+        )}
+        <div className="progress-box">
+          <div className="progress-row"><span>总进度 · 已完成 {d.done} / {d.total} 天</span><span>{pct}%</span></div>
+          <div className="bar big"><span className="fill-cyan" style={{ width: `${pct}%` }} /></div>
+          <div className="progress-foot">
+            <span className="pink-text"><CloudRain size={20} />漏打 {d.missed.length}</span>
+            <span className="divider" />
+            <span className="muted">{d.upcoming.length ? `接下来 ${d.upcoming.length} 天` : "没有后续日程"}</span>
+          </div>
+        </div>
+      </section>
+
+      <div className="scroll-area">
+        {d.missed.length > 0 && (
+          <>
+            <div className="section-label pink-text"><CloudRain size={18} />漏打</div>
+            {d.missed.map((m) => (
+              <div key={m.id} className="day-row glass neon-pink-soft">
+                <span className="day-tag pink-text">第{m.day_index}天</span>
+                <span className="day-task">{m.title}</span>
+                <span className="day-meta">{md(m.date)}</span>
+                {!ro && <button type="button" className="mini-btn" disabled={busy} onClick={() => run(() => makeUpCheckIn(m.id))}>补打</button>}
+              </div>
+            ))}
+          </>
+        )}
+        {d.upcoming.length > 0 && <div className="section-label cyan-text"><Sparkles size={18} />接下来</div>}
+        {d.upcoming.map((f, i) => (
+          <div key={f.id} className="day-row glass locked">
+            <Lock size={18} />
+            <span className="day-tag">第{f.day_index}天</span>
+            <span className="day-task">{f.title}</span>
+            <span className="day-meta"><Lock size={16} />{unlockText(f.date, i)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

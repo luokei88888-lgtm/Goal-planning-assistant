@@ -1,0 +1,112 @@
+/* ===== 通用主题套件：所有非赛博霓虹主题共享的组件结构，各主题只设置 --t-* 令牌 ===== */
+html:not([data-theme="neon"]) { font-family: var(--t-font); background: var(--bg); }
+html:not([data-theme="neon"]) .app-bg { background: var(--t-app-bg); }
+html:not([data-theme="neon"]) .bg-grid { display: none; }
+html:not([data-theme="neon"]) .bg-glow { display: var(--t-glow-display, none); }
+html:not([data-theme="neon"]) * { text-shadow: none !important; }
+html:not([data-theme="neon"]) svg, html:not([data-theme="neon"]) .brand-icon, html:not([data-theme="neon"]) .send-btn,
+html:not([data-theme="neon"]) .nav-item svg { filter: none !important; }
+html:not([data-theme="neon"]) h1, html:not([data-theme="neon"]) h2, html:not([data-theme="neon"]) h3,
+html:not([data-theme="neon"]) .page-title, html:not([data-theme="neon"]) .panel-title, html:not([data-theme="neon"]) .kpi b { font-weight: var(--t-head-weight, 800); letter-spacing: var(--t-head-ls, 1px); }
+
+/* 面板 / 卡片 */
+html:not([data-theme="neon"]) .glass,
+html:not([data-theme="neon"]) .neon-cyan, html:not([data-theme="neon"]) .neon-pink,
+html:not([data-theme="neon"]) .goal-card.neon-cyan, html:not([data-theme="neon"]) .goal-card.neon-pink,
+html:not([data-theme="neon"]) .bubble-ai, html:not([data-theme="neon"]) .weather-chip {
+  background: var(--t-panel-bg) !important; border: var(--t-panel-border) !important; box-shadow: var(--t-panel-shadow) !important;
+  backdrop-filter: var(--t-backdrop, none); -webkit-backdrop-filter: var(--t-backdrop, none); color: var(--text); }
+html:not([data-theme="neon"]) .goal-card, html:not([data-theme="neon"]) .kpi, html:not([data-theme="neon"]) .panel,
+html:not([data-theme="neon"]) .empty-card, html:not([data-theme="neon"]) .draft-card, html:not([data-theme="neon"]) .today-card,
+html:not([data-theme="neon"]) .plan-modal, html:not([data-theme="neon"]) .danger-modal, html:not([data-theme="neon"]) .weather-modal,
+html:not([data-theme="neon"]) .close-modal, html:not([data-theme="neon"]) .rank-item, html:not([data-theme="neon"]) .day-row { border-radius: var(--t-radius) !important; }
+html:not([data-theme="neon"]) .bubble-ai { border-radius: var(--t-radius) !important; }
+html:not([data-theme="neon"]) .goal-card.completed { border-color: rgba(var(--t-green-rgb, 46,232,138), .6) !important; }
+html:not([data-theme="neon"]) .sidebar { background: var(--t-side-bg) !important; border: var(--t-side-border) !important;
+  box-shadow: var(--t-side-shadow) !important; border-radius: var(--t-side-radius) !important; backdrop-filter: var(--t-backdrop, none); }
+html:not([data-theme="neon"]) .today-card { background: var(--t-hero-bg) !important; border: var(--t-panel-border) !important;
+  box-shadow: var(--t-panel-shadow) !important; backdrop-filter: var(--t-backdrop, none); }
+html:not([data-theme="neon"]) .today-card::before { display: none !important; }
+html:not([data-theme="neon"]) .plan-modal, html:not([data-theme="neon"]) .danger-modal, html:not([data-theme="neon"]) .weather-modal,
+html:not([data-theme="neon"]) .close-modal, html:not([data-theme="neon"]) .nsel-list, html:not([data-theme="neon"]) .toast {
+  background: var(--t-modal-bg) !important; border: var(--t-panel-border) !important; box-shadow: var(--t-modal-shadow) !important;
+  color: var(--text) !important; backdrop-filter: var(--t-backdrop, none); }
+html:not([data-theme="neon"]) .modal-mask { background: var(--t-mask) !important; }
+html:not([data-theme="neon"]) .neon-select option { background: var(--t-modal-solid, #fff); color: var(--text); }
+
+/* 次级按钮 / 控件 */
+html:not([data-theme="neon"]) .ghost-btn, html:not([data-theme="neon"]) .gd-btn, html:not([data-theme="neon"]) .mini-btn,
+html:not([data-theme="neon"]) .opt-btn, html:not([data-theme="neon"]) .cl-btn, html:not([data-theme="neon"]) .nsel,
+html:not([data-theme="neon"]) .icon-btn, html:not([data-theme="neon"]) .ver-pill, html:not([data-theme="neon"]) .today-pill,
+html:not([data-theme="neon"]) .stop-btn, html:not([data-theme="neon"]) .neon-select, html:not([data-theme="neon"]) .status-pill,
+html:not([data-theme="neon"]) .checkin-btn.done {
+  background: var(--t-btn-bg) !important; border: var(--t-btn-border) !important; box-shadow: var(--t-btn-shadow) !important;
+  border-radius: var(--t-btn-radius) !important; color: var(--text) !important; }
+html:not([data-theme="neon"]) .seg { background: var(--t-seg-bg, var(--t-btn-bg)) !important; border: var(--t-btn-border) !important;
+  box-shadow: var(--t-seg-shadow, var(--t-btn-shadow)) !important; border-radius: var(--t-btn-radius) !important; }
+html:not([data-theme="neon"]) .seg button { border-radius: calc(var(--t-btn-radius) - 3px); }
+html:not([data-theme="neon"]) .ghost-btn:hover, html:not([data-theme="neon"]) .gd-btn:hover, html:not([data-theme="neon"]) .mini-btn:hover,
+html:not([data-theme="neon"]) .opt-btn:hover, html:not([data-theme="neon"]) .cl-btn:hover, html:not([data-theme="neon"]) .icon-btn:hover,
+html:not([data-theme="neon"]) .nsel:hover:not(:disabled), html:not([data-theme="neon"]) .nsel.open {
+  filter: none; background: var(--t-btn-hover) !important; border-color: var(--t-btn-hover-border, currentColor); }
+html:not([data-theme="neon"]) .opt-btn.on, html:not([data-theme="neon"]) .opt-btn.picked, html:not([data-theme="neon"]) .opt-btn.sel { background: var(--t-nav-on-bg) !important; color: var(--t-nav-on-color) !important; }
+html:not([data-theme="neon"]) .tag { background: var(--t-tag-bg) !important; border: var(--t-tag-border) !important; color: var(--t-tag-color) !important; border-radius: var(--t-tag-radius, 6px) !important; box-shadow: var(--t-tag-shadow, none) !important; }
+
+/* 主按钮 */
+html:not([data-theme="neon"]) .checkin-btn:not(.done), html:not([data-theme="neon"]) .gd-btn.primary,
+html:not([data-theme="neon"]) .cl-btn.primary, html:not([data-theme="neon"]) .pf-btn.primary {
+  background: var(--t-pri-bg) !important; color: var(--t-pri-color) !important; border: var(--t-pri-border) !important;
+  box-shadow: var(--t-pri-shadow) !important; border-radius: var(--t-pri-radius) !important; letter-spacing: var(--t-pri-ls, normal); }
+html:not([data-theme="neon"]) .checkin-btn:not(.done) svg, html:not([data-theme="neon"]) .gd-btn.primary svg { color: inherit !important; }
+html:not([data-theme="neon"]) .checkin-btn.done { color: var(--t-accent) !important; }
+html:not([data-theme="neon"]) .danger-btn, html:not([data-theme="neon"]) .cl-btn.danger {
+  background: var(--t-danger) !important; color: #fff !important; border: var(--t-pri-border) !important;
+  box-shadow: var(--t-pri-shadow-plain, var(--t-btn-shadow)) !important; border-radius: var(--t-pri-radius) !important; }
+html:not([data-theme="neon"]) .send-btn { color: var(--t-accent) !important; }
+
+/* 导航 / 分段 */
+html:not([data-theme="neon"]) .nav-item { color: var(--muted); border: 1px solid transparent; border-radius: var(--t-btn-radius); letter-spacing: var(--t-nav-ls, normal); }
+html:not([data-theme="neon"]) .nav-item:hover { background: var(--t-btn-hover); color: var(--text); }
+html:not([data-theme="neon"]) .nav-item.active.tone-cyan, html:not([data-theme="neon"]) .nav-item.active.tone-pink {
+  background: var(--t-nav-on-bg) !important; color: var(--t-nav-on-color) !important; border: var(--t-nav-on-border) !important;
+  box-shadow: var(--t-nav-on-shadow) !important; border-radius: var(--t-nav-on-radius, var(--t-btn-radius)) !important; font-weight: 700; }
+html:not([data-theme="neon"]) .nav-item.active svg { color: var(--t-nav-on-color) !important; }
+html:not([data-theme="neon"]) .seg button.on, html:not([data-theme="neon"]) .seg button.on.pink, html:not([data-theme="neon"]) .seg button.on.green {
+  background: var(--t-nav-on-bg) !important; color: var(--t-nav-on-color) !important; border-color: transparent !important;
+  box-shadow: var(--t-seg-on-shadow, none) !important; }
+
+/* 进度条 */
+html:not([data-theme="neon"]) .bar, html:not([data-theme="neon"]) .rank-bar { background: var(--t-bar-bg) !important; box-shadow: var(--t-bar-shadow, none) !important;
+  border: var(--t-bar-border, none); height: var(--t-bar-h, 9px); }
+html:not([data-theme="neon"]) .fill-cyan, html:not([data-theme="neon"]) .fill-pink, html:not([data-theme="neon"]) .rank-bar i {
+  background: var(--t-fill) !important; box-shadow: none !important; }
+html:not([data-theme="neon"]) .fill-green { background: var(--t-fill-green, var(--t-fill)) !important; box-shadow: none !important; }
+html:not([data-theme="neon"]) .page-title.underline::after { background: var(--t-fill) !important; box-shadow: none !important; }
+
+/* 输入 */
+html:not([data-theme="neon"]) .field input, html:not([data-theme="neon"]) .field textarea, html:not([data-theme="neon"]) .chat-input,
+html:not([data-theme="neon"]) .time-input, html:not([data-theme="neon"]) .session-edit {
+  background: var(--t-input-bg) !important; border: var(--t-input-border) !important; box-shadow: var(--t-input-shadow) !important; color: var(--text); }
+html:not([data-theme="neon"]) .chat-input { border-radius: var(--t-btn-radius) !important; }
+html:not([data-theme="neon"]) .switch { background: var(--t-input-bg) !important; border: var(--t-input-border) !important; box-shadow: var(--t-input-shadow) !important; }
+html:not([data-theme="neon"]) .switch:checked { background: var(--t-switch-on, var(--t-accent)) !important; border-color: transparent !important; }
+html:not([data-theme="neon"]) .switch:checked::after { background: #fff !important; box-shadow: 0 1px 3px rgba(0,0,0,.25) !important; }
+
+/* 气泡 / 头像 / 品牌 */
+html:not([data-theme="neon"]) .bubble-user { background: var(--t-user-bg) !important; color: var(--t-user-color) !important;
+  border: var(--t-pri-border) !important; box-shadow: var(--t-pri-shadow-plain, var(--t-btn-shadow)) !important; border-radius: var(--t-btn-radius) !important; }
+html:not([data-theme="neon"]) .avatar { background: var(--t-btn-bg) !important; border: var(--t-btn-border) !important; box-shadow: var(--t-btn-shadow) !important; }
+html:not([data-theme="neon"]) .brand-name { background: none !important; -webkit-text-fill-color: currentColor !important; color: var(--text) !important; }
+html:not([data-theme="neon"]) .brand-icon { color: var(--t-accent); }
+
+/* 滚动条 */
+html:not([data-theme="neon"]) *:hover::-webkit-scrollbar-thumb, html:not([data-theme="neon"]) *:hover::-webkit-scrollbar-thumb:horizontal,
+html:not([data-theme="neon"]) .nsel-list::-webkit-scrollbar-thumb { background: var(--t-scroll) !important; box-shadow: none !important; }
+html:not([data-theme="neon"]) *:hover::-webkit-scrollbar-thumb:hover { background: var(--t-accent) !important; }
+
+/* 趋势图 / 主题卡 */
+html:not([data-theme="neon"]) .trend-svg * { filter: none !important; }
+html:not([data-theme="neon"]) .theme-card { background: var(--t-btn-bg) !important; border: var(--t-btn-border) !important;
+  box-shadow: var(--t-btn-shadow) !important; border-radius: var(--t-btn-radius-card, 14px) !important; }
+html:not([data-theme="neon"]) .theme-card.on { outline: 2px solid var(--t-accent); outline-offset: 2px; }
+html:not([data-theme="neon"]) .theme-name svg { color: var(--t-accent); }

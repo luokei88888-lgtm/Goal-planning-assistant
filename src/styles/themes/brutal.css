@@ -1,0 +1,27 @@
+/* 新野兽派 */
+html[data-theme="brutal"] {
+  --t-font: "Arial Black", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  --t-app-bg: #fff4d6; --t-head-weight: 900; --t-head-ls: 0;
+  --t-panel-bg: #ffffff; --t-panel-border: 3px solid #000; --t-panel-shadow: 6px 6px 0 #000;
+  --t-radius: 6px; --t-side-bg: #ffd23f; --t-side-border: 3px solid #000; --t-side-shadow: 6px 6px 0 #000; --t-side-radius: 6px;
+  --t-hero-bg: #ffffff; --t-modal-bg: #ffffff; --t-modal-solid: #fff; --t-modal-shadow: 8px 8px 0 #000; --t-mask: rgba(0,0,0,.35);
+  --t-btn-bg: #ffffff; --t-btn-border: 3px solid #000; --t-btn-shadow: 4px 4px 0 #000; --t-btn-radius: 6px; --t-btn-hover: #fff4d6; --t-btn-hover-border: #000;
+  --t-pri-bg: #ff6b9d; --t-pri-color: #000; --t-pri-border: 3px solid #000; --t-pri-shadow: 5px 5px 0 #000; --t-pri-radius: 6px;
+  --t-accent: #000; --t-danger: #e63946;
+  --t-nav-on-bg: #ffffff; --t-nav-on-color: #000; --t-nav-on-border: 3px solid #000; --t-nav-on-shadow: 4px 4px 0 #000; --t-nav-on-radius: 6px;
+  --t-bar-bg: #ffffff; --t-bar-border: 3px solid #000; --t-bar-h: 16px; --t-fill: #3bceac; --t-fill-green: #3bceac;
+  --t-input-bg: #ffffff; --t-input-border: 3px solid #000; --t-input-shadow: 3px 3px 0 #000;
+  --t-tag-bg: #a5d8ff; --t-tag-border: 2px solid #000; --t-tag-color: #000; --t-tag-radius: 4px;
+  --t-user-bg: #a5d8ff; --t-user-color: #000; --t-scroll: #000; --t-switch-on: #3bceac; --t-green-rgb: 0,0,0;
+  --t-seg-on-shadow: 0 0 0 2px #000;
+}
+html[data-theme="brutal"] body, html[data-theme="brutal"] .app-shell { font-weight: 600; }
+html[data-theme="brutal"] .bar span { border-right: 3px solid #000; border-radius: 0 !important; }
+html[data-theme="brutal"] .bar { border-radius: 4px !important; }
+html[data-theme="brutal"] .ver-pill { background: #3bceac !important; }
+html[data-theme="brutal"] .kpi:nth-child(5n+1) { background: #3bceac !important; }
+html[data-theme="brutal"] .kpi:nth-child(5n+2) { background: #ff9f43 !important; }
+html[data-theme="brutal"] .kpi:nth-child(5n+3) { background: #a5d8ff !important; }
+html[data-theme="brutal"] .kpi:nth-child(5n+4) { background: #ffd23f !important; }
+html[data-theme="brutal"] .nav-item:hover { background: #fff; }
+html[data-theme="brutal"] .ghost-btn:active, html[data-theme="brutal"] .checkin-btn:active, html[data-theme="brutal"] .gd-btn:active { transform: translate(3px,3px); box-shadow: 1px 1px 0 #000 !important; }

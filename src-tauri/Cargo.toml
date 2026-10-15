@@ -1,0 +1,37 @@
+[package]
+name = "goal-plan-assistant"
+version = "0.1.0"
+description = "目标计划助手 - 本地桌面目标与计划工具"
+authors = ["luoke"]
+edition = "2021"
+
+[lib]
+name = "goal_plan_assistant_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+thiserror = "2"
+keyring = { version = "3", features = ["windows-native"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = "2"
+tokio = { version = "1", features = ["time", "macros"] }
+tauri-plugin-notification = "2"
+tauri-plugin-autostart = "2"
+
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

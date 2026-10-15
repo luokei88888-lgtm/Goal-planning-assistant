@@ -1,0 +1,24 @@
+/* 新拟物 */
+html[data-theme="neu"] {
+  --t-font: "Inter", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  --t-app-bg: #e4e9f0; --t-head-weight: 700;
+  --neu-out: 7px 7px 14px #c3c8cf, -7px -7px 14px #ffffff;
+  --neu-out-sm: 4px 4px 8px #c3c8cf, -4px -4px 8px #ffffff;
+  --neu-in: inset 4px 4px 8px #c3c8cf, inset -4px -4px 8px #ffffff;
+  --t-panel-bg: #e4e9f0; --t-panel-border: none; --t-panel-shadow: var(--neu-out);
+  --t-radius: 22px; --t-side-bg: #e4e9f0; --t-side-border: none; --t-side-shadow: var(--neu-out); --t-side-radius: 22px;
+  --t-hero-bg: #e4e9f0; --t-modal-bg: #e4e9f0; --t-modal-solid: #e4e9f0; --t-modal-shadow: 12px 12px 30px #b8bec7, -8px -8px 24px #ffffff; --t-mask: rgba(61,74,92,.25);
+  --t-btn-bg: #e4e9f0; --t-btn-border: none; --t-btn-shadow: var(--neu-out-sm); --t-btn-radius: 12px; --t-btn-hover: #e8edf4;
+  --t-seg-shadow: var(--neu-in);
+  --t-pri-bg: #e4e9f0; --t-pri-color: #3d6cf2; --t-pri-border: none; --t-pri-shadow: var(--neu-out); --t-pri-shadow-plain: var(--neu-out-sm); --t-pri-radius: 16px;
+  --t-accent: #3d6cf2; --t-danger: #e05353;
+  --t-nav-on-bg: #e4e9f0; --t-nav-on-color: #3d6cf2; --t-nav-on-border: none; --t-nav-on-shadow: var(--neu-in); --t-nav-on-radius: 14px;
+  --t-seg-on-shadow: var(--neu-out-sm);
+  --t-bar-bg: #e4e9f0; --t-bar-shadow: var(--neu-in); --t-bar-h: 12px; --t-fill: linear-gradient(90deg, #6a8dff, #3d6cf2); --t-fill-green: linear-gradient(90deg,#4ade80,#16a34a);
+  --t-input-bg: #e4e9f0; --t-input-border: none; --t-input-shadow: var(--neu-in);
+  --t-tag-bg: #e4e9f0; --t-tag-border: none; --t-tag-color: #3d6cf2; --t-tag-radius: 999px; --t-tag-shadow: var(--neu-in);
+  --t-user-bg: #e4e9f0; --t-user-color: #3d6cf2; --t-scroll: #c3c8cf; --t-switch-on: #3d6cf2; --t-green-rgb: 22,150,80;
+}
+html[data-theme="neu"] .ghost-btn:active, html[data-theme="neu"] .gd-btn:active, html[data-theme="neu"] .checkin-btn:active, html[data-theme="neu"] .opt-btn:active,
+html[data-theme="neu"] .nsel.open, html[data-theme="neu"] .checkin-btn.done { box-shadow: var(--neu-in) !important; }
+html[data-theme="neu"] .ver-pill { box-shadow: var(--neu-in) !important; color: #3d6cf2 !important; }
