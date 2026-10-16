@@ -164,8 +164,7 @@ pub fn run() {
             commands::get_goal_reminders,
             commands::save_goal_reminders,
             commands::get_reminder_settings,
-            commands::save_reminder_settings,
-            commands::send_test_notification
+            commands::save_reminder_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

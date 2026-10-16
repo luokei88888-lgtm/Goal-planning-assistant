@@ -536,12 +536,6 @@ pub fn notify(app: &AppHandle, title: &str, body: &str) -> Result<(), String> {
         .map_err(|e| format!("发送通知失败：{e}（请检查 Windows 设置 → 系统 → 通知 是否允许本应用）"))
 }
 
-#[tauri::command]
-pub fn send_test_notification(app: AppHandle) -> Result<String, String> {
-    notify(&app, "目标计划助手 · 测试通知", "能看到这条，说明打卡提醒可以正常弹出 ✨")?;
-    Ok("已发送测试通知，请看屏幕右下角".into())
-}
-
 /// 后台每 30 秒检查一次
 pub fn reminder_tick(app: &AppHandle) {
     let Ok(conn) = open(app) else { return };

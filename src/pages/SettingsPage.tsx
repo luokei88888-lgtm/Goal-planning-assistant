@@ -6,7 +6,7 @@ import { THEMES, currentTheme, saveTheme } from "../lib/theme";
 import type { UiTheme, DbLocation, DbMoveResult, DbConflict } from "../lib/tauri";
 import { dbLocation, dbChangeLocation, dbRestoreDefault, dbOpenFolder, DB_EXISTS, DB_MISSING } from "../lib/tauri";
 import { ChoiceDialog } from "../components/DbDialogs";
-import { getAppInfo, getSettings, saveSettings, deleteApiKey, testConnection, factoryReset, exportBackup, inspectBackup, importBackup, type AppInfo, type SettingsView, type BackupInfo, getReminderSettings, saveReminderSettings, sendTestNotification, type ReminderSettings, weatherGetSettings, weatherSaveSettings, weatherSearchCity, type WeatherSettings, type City, fetchModels, getCloseAction, setCloseAction, type CloseAction } from "../lib/tauri";
+import { getAppInfo, getSettings, saveSettings, deleteApiKey, testConnection, factoryReset, exportBackup, inspectBackup, importBackup, type AppInfo, type SettingsView, type BackupInfo, getReminderSettings, saveReminderSettings, type ReminderSettings, weatherGetSettings, weatherSaveSettings, weatherSearchCity, type WeatherSettings, type City, fetchModels, getCloseAction, setCloseAction, type CloseAction } from "../lib/tauri";
 import { enable as enableAutostart, disable as disableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
 
 function WeatherPanel() {
@@ -78,10 +78,6 @@ function ReminderPanel() {
     try { if (v) await enableAutostart(); else await disableAutostart(); setAuto(await autostartEnabled()); }
     catch (e) { setMsg({ ok: false, text: `设置开机自启失败：${String(e)}` }); }
   };
-  const test = async () => {
-    setMsg(null);
-    try { setMsg({ ok: true, text: await sendTestNotification() }); } catch (e) { setMsg({ ok: false, text: String(e) }); }
-  };
   if (!rs) return null;
   return (
     <section className="glass neon-pink-soft panel">
@@ -105,9 +101,6 @@ function ReminderPanel() {
         <span><Power size={15} /> 开机自动启动<small>开机后静默运行在托盘，按时提醒</small></span>
         <input type="checkbox" className="switch" checked={auto} onChange={(e) => toggleAuto(e.target.checked)} />
       </label>
-      <div className="btn-row">
-        <button type="button" className="ghost-btn neon-pink" onClick={test}><BellRing size={18} />发一条测试通知</button>
-      </div>
       {msg && <div className={msg.ok ? "ok-line" : "error-line"}>{msg.text}</div>}
     </section>
   );

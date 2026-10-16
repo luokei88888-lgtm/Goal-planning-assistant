@@ -150,7 +150,6 @@ export const getGoalReminders = (goalId: number) => invoke<GoalReminders>("get_g
 export const saveGoalReminders = (goalId: number, enabled: boolean, times: string[]) => invoke<GoalReminders>("save_goal_reminders", { goalId, enabled, times });
 export const getReminderSettings = () => invoke<ReminderSettings>("get_reminder_settings");
 export const saveReminderSettings = (settings: ReminderSettings) => invoke<ReminderSettings>("save_reminder_settings", { settings });
-export const sendTestNotification = () => invoke<string>("send_test_notification");
 
 // ---------- 统计 ----------
 export type WeekPoint = { week_start: string; done: number; due: number; rate: number | null };
