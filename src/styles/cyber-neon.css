@@ -497,7 +497,7 @@ button:disabled { opacity: .55; cursor: wait; }
 .kpi b small { font-size: 14px; margin-left: 4px; color: var(--muted); font-weight: 400; }
 .kpi span { color: var(--muted); font-size: 13px; }
 .stats-note { margin: 4px 0 14px; }
-.stats .panel { margin-bottom: 16px; }
+.stats .panel { padding: 18px 22px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 14px; }
 .trend-svg { width: 100%; height: auto; max-height: 240px; display: block; }
 .trend-grid { stroke: rgba(var(--k-255-255-255), 0.08); stroke-dasharray: 4 4; }
 .trend-axis { fill: var(--muted); font-size: 11px; }
