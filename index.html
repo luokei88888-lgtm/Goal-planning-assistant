@@ -11,6 +11,11 @@
         var ok = ["glass", "bento", "brutal", "clay", "neu", "ink", "neon"], t = "glass";
         try { var v = localStorage.getItem("gpa-theme"); if (ok.indexOf(v) >= 0) t = v; } catch (e) {}
         document.documentElement.setAttribute("data-theme", t);
+        // 减少动画：用户开关或系统 prefers-reduced-motion
+        var rm = false;
+        try { rm = localStorage.getItem("gpa-reduce-motion") === "1"; } catch (e) {}
+        try { rm = rm || matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+        if (rm) document.documentElement.setAttribute("data-motion", "reduce");
       })();
     </script>
   </head>

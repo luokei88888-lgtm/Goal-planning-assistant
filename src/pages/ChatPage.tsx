@@ -51,13 +51,13 @@ function OptionPicker({ opts, multi, closed, disabled, onSend, onOther }: { opts
       {multi && <div className="opt-hint">可多选</div>}
       <div className="opt-list">
         {opts.map((o, k) => (
-          <button key={o} type="button" disabled={disabled} className={`opt-btn ${sel.includes(o) ? "on" : ""}`}
+          <button key={o} type="button" disabled={disabled} className={`opt-btn ${sel.includes(o) ? "on" : ""}`} style={{ ["--i" as string]: k }}
             onClick={() => (multi ? tog(o) : onSend(o))}>
             {multi && <span className="opt-box">{sel.includes(o) && <Check size={12} />}</span>}<span className="opt-no">{k + 1}.</span>{o}
           </button>
         ))}
-        {!closed && <button type="button" disabled={disabled} className="opt-btn other" onClick={onOther}><span className="opt-no">{opts.length + 1}.</span><Pencil size={14} />其它，自己填</button>}
-        {multi && <button type="button" className="opt-btn ok" disabled={disabled || !sel.length} onClick={() => onSend(sel.join("、"))}><CircleCheck size={15} />确定{sel.length ? `（${sel.length}）` : ""}</button>}
+        {!closed && <button type="button" disabled={disabled} className="opt-btn other" style={{ ["--i" as string]: opts.length }} onClick={onOther}><span className="opt-no">{opts.length + 1}.</span><Pencil size={14} />其它，自己填</button>}
+        {multi && <button type="button" className="opt-btn ok" style={{ ["--i" as string]: opts.length + 1 }} disabled={disabled || !sel.length} onClick={() => onSend(sel.join("、"))}><CircleCheck size={15} />确定{sel.length ? `（${sel.length}）` : ""}</button>}
       </div>
     </div>
   );
@@ -450,7 +450,7 @@ export function ChatPage({ onOpenGoal, onGoSettings, goalId, prefill, onBack }: 
         )}
         {msgs.map((m) =>
           m.role === "user" ? (
-            <div key={m.id} className="row-user">
+            <div key={m.id} className={`row-user ${m.id < 0 ? "m-in" : ""}`}>
               <div className="bubble-user">{m.text}</div>
               <div className="avatar cyan"><UserRound size={24} /></div>
             </div>
@@ -503,7 +503,7 @@ export function ChatPage({ onOpenGoal, onGoSettings, goalId, prefill, onBack }: 
           ),
         )}
         {busy && (
-          <div className="row-ai">
+          <div className="row-ai m-in">
             <div className="avatar bot"><Crosshair size={28} /></div>
             {lv && (lv.prose || lv.progress) ? (
               <div className="bubble-ai glass md-bubble live">
@@ -517,7 +517,7 @@ export function ChatPage({ onOpenGoal, onGoSettings, goalId, prefill, onBack }: 
                 <details className="think-box"><summary>查看思考过程</summary><div className="think-text">{reason}</div></details>
               </div>
             ) : (
-              <div className="bubble-ai glass thinking"><Loader size={18} className="spin" />助手思考中…</div>
+              <div className="bubble-ai glass thinking" aria-label="助手思考中"><span className="typing"><i /><i /><i /></span></div>
             )}
           </div>
         )}

@@ -6,6 +6,7 @@ import { THEMES, currentTheme, saveTheme } from "../lib/theme";
 import type { UiTheme, DbLocation, DbMoveResult, DbConflict } from "../lib/tauri";
 import { dbLocation, dbChangeLocation, dbRestoreDefault, dbOpenFolder, DB_EXISTS, DB_MISSING } from "../lib/tauri";
 import { ChoiceDialog } from "../components/DbDialogs";
+import { saveReduceMotion, userReduceMotion, useReduced } from "../lib/motion";
 import { getAppInfo, getSettings, saveSettings, deleteApiKey, testConnection, factoryReset, exportBackup, inspectBackup, importBackup, type AppInfo, type SettingsView, type BackupInfo, getReminderSettings, saveReminderSettings, type ReminderSettings, weatherGetSettings, weatherSaveSettings, weatherSearchCity, type WeatherSettings, type City, fetchModels, getCloseAction, setCloseAction, type CloseAction } from "../lib/tauri";
 import { enable as enableAutostart, disable as disableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
 
@@ -245,6 +246,17 @@ function ModelPicker({ value, onChange, presets, fetched, editable, loading, onF
   );
 }
 
+function MotionSwitch({ onErr }: { onErr: (e: string) => void }) {
+  const eff = useReduced();
+  const on = userReduceMotion();
+  return (
+    <label className="switch-row">
+      <span>减少动画<small>{!on && eff ? "系统已开启「减少动态效果」，已自动减少；" : ""}开启后动效几乎瞬间完成、不放彩带、背景静止</small></span>
+      <input type="checkbox" className="switch" checked={on} onChange={(e) => { saveReduceMotion(e.target.checked).catch((x) => onErr(String(x))); }} />
+    </label>
+  );
+}
+
 function ThemePanel() {
   const [cur, setCur] = useState<UiTheme>(currentTheme());
   const [err, setErr] = useState("");
@@ -270,6 +282,7 @@ function ThemePanel() {
           </button>
         ))}
       </div>
+      <MotionSwitch onErr={setErr} />
       {err && <div className="error-line">{err}</div>}
     </section>
   );

@@ -12,6 +12,8 @@ import { CloseDialog } from "./components/CloseDialog";
 import { DbMissingGuard } from "./components/DbDialogs";
 import "./styles/cyber-neon.css";
 import "./styles/themes/index.css";
+import "./styles/motion.css";
+import { syncMotionFromDb, installVisibilityPause } from "./lib/motion";
 import { syncThemeFromDb } from "./lib/theme";
 
 export default function App() {
@@ -19,9 +21,10 @@ export default function App() {
   const [goalId, setGoalId] = useState<number | null>(null);
   const [toast, setToast] = useState("");
   const [resetKey, setResetKey] = useState(0);
-  useEffect(() => { syncThemeFromDb(); }, []);
+  useEffect(() => { syncThemeFromDb(); syncMotionFromDb(); installVisibilityPause(); }, []);
   const onReset = (text = "已恢复出厂设置") => {
     syncThemeFromDb();
+    syncMotionFromDb();
     setGoalId(null);
     setResetKey((k) => k + 1);
     setPage("goals");

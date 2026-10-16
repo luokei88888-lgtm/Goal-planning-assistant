@@ -51,12 +51,12 @@ export function TemplatesPage({ onBack, onOpenGoal, onAdjust }: { onBack: () => 
       </header>
       {err && <div className="error-line">{err}</div>}
       <div className="muted small">选一个模板即可一键生成按天计划；想按自己的情况改，点「让助手按我情况调整」。在目标详情页右上角可以把自己的目标「存为模板」。</div>
-      <div className="tpl-grid">
-        {list?.map((t) => {
+      <div className="tpl-grid m-stagger">
+        {list?.map((t, i) => {
           const Icon = ICONS[t.icon] ?? Target;
           const rest = t.days.filter((d) => d.is_rest).length;
           return (
-            <div key={t.id} className={`tpl-card glass ${t.builtin ? "neon-cyan" : "neon-pink"}`}>
+            <div key={t.id} className={`tpl-card glass ${t.builtin ? "neon-cyan" : "neon-pink"}`} style={{ ["--i" as string]: i }}>
               <div className="tpl-head">
                 <div className={`goal-icon ${t.builtin ? "neon-cyan" : "neon-pink"}`}><Icon size={30} strokeWidth={1.5} /></div>
                 <div>

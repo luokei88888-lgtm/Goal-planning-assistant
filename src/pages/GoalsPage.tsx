@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSlider } from "../lib/motion";
 import { Flame, NotebookPen, BookOpen, Target, CalendarDays, Circle, CircleCheck, Sparkles, Download, Archive, ArchiveRestore, LayoutTemplate, Trophy, type LucideIcon } from "lucide-react";
 import { WeatherCard } from "../components/WeatherCard";
 import { listGoals, importSampleGoal, restoreGoal, type GoalSummary } from "../lib/tauri";
@@ -13,6 +14,8 @@ export function GoalsPage({ onOpenGoal, onTemplates }: { onOpenGoal: (id: number
   const [busy, setBusy] = useState(false);
 
   const [tab, setTab] = useState<"active" | "completed" | "archived">("active");
+  const segRef = useRef<HTMLDivElement>(null);
+  const segHl = useSlider(segRef, "button.on:not(.seg-hl)", [tab, cur, arch]);
   // 一次取全部（进行中+已完成、已归档），标签显示数量
   const load = () => Promise.all([listGoals(false), listGoals(true)]).then(([a, b]) => { setCur(a); setArch(b); }).catch((e) => setError(String(e)));
   useEffect(() => { load(); }, []);
@@ -34,7 +37,7 @@ export function GoalsPage({ onOpenGoal, onTemplates }: { onOpenGoal: (id: number
     try { await importSampleGoal(); await load(); } catch (e) { setError(String(e)); } finally { setBusy(false); }
   };
 
-  const card = (g: GoalSummary) => {
+  const card = (g: GoalSummary, i: number) => {
     const arch = g.status === "archived";
     const done = g.status === "completed";
     const tone = arch || done ? "cyan" : g.today_done ? "cyan" : "pink";
@@ -42,7 +45,7 @@ export function GoalsPage({ onOpenGoal, onTemplates }: { onOpenGoal: (id: number
     const due = Math.max(0, g.total - g.rest);
     const rate = due ? Math.round((g.done / due) * 100) : 0;
     return (
-      <div key={g.id} className={`goal-card glass neon-${tone} ${arch ? "archived" : ""} ${done ? "completed" : ""}`} role="button" tabIndex={0}
+      <div key={g.id} className={`goal-card glass neon-${tone} ${arch ? "archived" : ""} ${done ? "completed" : ""}`} role="button" tabIndex={0} style={{ ["--i" as string]: Math.min(i, 12) }}
         onClick={() => onOpenGoal(g.id)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpenGoal(g.id); }}>
         <div className={`goal-icon neon-${tone}`}><Icon size={40} strokeWidth={1.5} /></div>
@@ -92,7 +95,8 @@ export function GoalsPage({ onOpenGoal, onTemplates }: { onOpenGoal: (id: number
         </div>
       </header>
       <div className="toolbar">
-        <div className="seg glass">
+        <div className={`seg glass ${segHl ? "has-hl" : ""}`} ref={segRef}>
+          {segHl && <button type="button" tabIndex={-1} aria-hidden="true" className={`seg-hl on ${tab === "completed" ? "green" : tab === "archived" ? "pink" : ""}`} style={segHl} />}
           <button type="button" className={tab === "active" ? "on" : ""} onClick={() => setTab("active")}><Target size={15} />进行中<em className="seg-n">{cnt("active")}</em></button>
           <button type="button" className={tab === "completed" ? "on green" : ""} onClick={() => setTab("completed")}><Trophy size={15} />已完成<em className="seg-n">{cnt("completed")}</em></button>
           <button type="button" className={tab === "archived" ? "on pink" : ""} onClick={() => setTab("archived")}><Archive size={15} />已归档<em className="seg-n">{cnt("archived")}</em></button>
@@ -130,7 +134,7 @@ export function GoalsPage({ onOpenGoal, onTemplates }: { onOpenGoal: (id: number
           <div className="empty-sub">坚持到最后一天就会出现在这里；改方案延长计划后会回到「进行中」</div>
         </div>
       )}
-      <div className="goal-list">{goals?.map(card)}</div>
+      <div className="goal-list m-stagger" key={tab}>{goals?.map(card)}</div>
     </div>
   );
 }

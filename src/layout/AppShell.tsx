@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
+import { useSlider } from "../lib/motion";
 import { Crosshair, Target, MessageCircle, Settings, ChartColumn } from "lucide-react";
 import { StatusPill } from "../components/StatusPill";
 
@@ -18,13 +19,17 @@ export function AppShell({ page, onNavigate, children }: Props) {
       <span>{label}</span>
     </button>
   );
+  const side = useRef<HTMLElement>(null);
+  const hl = useSlider(side, ".nav-item.active:not(.nav-hl)", [active]);
+  const tone = active === "chat" ? "pink" : "cyan";
   return (
     <div className="app-bg">
       <div className="bg-grid" />
       <div className="bg-glow g1" />
       <div className="bg-glow g2" />
       <div className="app-shell">
-        <aside className="sidebar glass">
+        <aside className={`sidebar glass ${hl ? "has-hl" : ""}`} ref={side}>
+          {hl && <div className={`nav-item active tone-${tone} nav-hl`} style={hl} aria-hidden="true" />}
           <div className="brand">
             <div className="brand-icon"><Crosshair size={40} strokeWidth={1.6} /></div>
             <div className="brand-name">目标计划助手</div>

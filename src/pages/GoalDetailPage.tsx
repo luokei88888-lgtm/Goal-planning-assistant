@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRoll, confetti, celebrateToast } from "../lib/motion";
 import { createPortal } from "react-dom";
 import { Activity, RefreshCw, CalendarCheck, History, X, CircleCheck, CloudRain, Sparkles, Lock, ChevronLeft, Undo2, Archive, Coffee, ArchiveRestore, Bell, BellOff, Plus, Trash2, BookmarkPlus, Trophy } from "lucide-react";
-import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats } from "../lib/tauri";
+import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce } from "../lib/tauri";
 
 function ReminderModal({ goalId, title, onClose, onSaved }: { goalId: number; title: string; onClose: () => void; onSaved: (r: GoalReminders) => void }) {
   const [on, setOn] = useState(false);
@@ -152,9 +153,31 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
     try { await fn(); await load(); } catch (e) { setError(String(e)); } finally { setBusy(false); }
   };
 
+  // 动效：完成数 / 百分比滚动、勾选弹跳、里程碑庆祝
+  const rawPct = d && d.total ? Math.round((d.done / d.total) * 100) : 0;
+  const doneN = useRoll(d ? d.done : -1, 500);
+  const pctN = useRoll(d ? rawPct : -1, 500);
+  const [pop, setPop] = useState(0);
+  const barInit = useRef(true);
+  useEffect(() => { if (d) { const t = requestAnimationFrame(() => { barInit.current = false; }); return () => cancelAnimationFrame(t); } }, [d]);
+  const doCheckIn = (id: number) => run(async () => {
+    await checkIn(id);
+    setPop((p) => p + 1);
+    try {
+      const [x, s] = await Promise.all([getGoalDetail(goalId), getStats(goalId)]);
+      const keys: [string, string][] = [];
+      if (x.total > 0 && x.done >= x.total) keys.push(["all_done", "🏆 目标全部完成，了不起！"]);
+      const st = s.current_streak;
+      if ([7, 14, 21, 30].includes(st)) keys.push([`streak${st}`, `🎉 连续打卡 ${st} 天，太棒了！`]);
+      for (const [k, text] of keys) {
+        if (await celebrateOnce(goalId, k)) { confetti(); celebrateToast(text); break; }
+      }
+    } catch { /* 庆祝失败不影响打卡 */ }
+  });
+
   if (!d) return <div className="page">{error ? <div className="error-line">{error}</div> : <div className="muted">加载中…</div>}</div>;
 
-  const pct = d.total ? Math.round((d.done / d.total) * 100) : 0;
+  const pct = rawPct;
   const t = d.today;
   const ro = d.readonly;
 
@@ -218,8 +241,11 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
               <div className="muted">归档版本只读{t.checked ? " · 当天已完成" : ""}</div>
             ) : (
               <button type="button" className={`checkin-btn ${t.checked ? "done" : ""}`} disabled={busy}
-                onClick={() => run(() => (t.checked ? undoCheckIn(t.id) : checkIn(t.id)))}>
-                {t.checked ? <>已完成 · 取消打卡<Undo2 size={26} /></> : <>完成今天<CircleCheck size={30} /></>}
+                title={t.checked ? "再点一次可撤销今天的打卡" : undefined}
+                onClick={() => (t.checked ? run(() => undoCheckIn(t.id)) : doCheckIn(t.id))}>
+                {t.checked
+                  ? <>今天已打<span key={pop} className={pop ? "m-pop" : ""}><CircleCheck size={26} /></span><Undo2 size={18} className="undo-hint" /></>
+                  : <>完成今天<CircleCheck size={30} /></>}
               </button>
             )}
           </>
@@ -233,8 +259,8 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
           </>
         )}
         <div className="progress-box">
-          <div className="progress-row"><span>总进度 · 已完成 {d.done} / {d.total} 天</span><span>{pct}%</span></div>
-          <div className="bar big"><span className="fill-cyan" style={{ width: `${pct}%` }} /></div>
+          <div className="progress-row"><span>总进度 · 已完成 {doneN} / {d.total} 天</span><span>{pctN}%</span></div>
+          <div className="bar big"><span className={`fill-cyan m-fill ${barInit.current ? "m-init" : ""}`} style={{ ["--p" as string]: pct / 100 }} /></div>
           <div className="progress-foot">
             <span className="pink-text"><CloudRain size={20} />漏打 {d.missed.length}</span>
             <span className="divider" />
@@ -243,12 +269,12 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
         </div>
       </section>
 
-      <div className="scroll-area">
+      <div className="scroll-area m-stagger">
         {d.missed.length > 0 && (
           <>
             <div className="section-label pink-text"><CloudRain size={18} />漏打</div>
             {d.missed.map((m) => (
-              <div key={m.id} className="day-row glass neon-pink-soft">
+              <div key={m.id} className="day-row glass neon-pink-soft" style={{ ["--i" as string]: 0 }}>
                 <span className="day-tag pink-text">第{m.day_index}天</span>
                 <span className="day-task">{m.title}</span>
                 <span className="day-meta">{md(m.date)}</span>
@@ -259,7 +285,7 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
         )}
         {d.upcoming.length > 0 && <div className="section-label cyan-text"><Sparkles size={18} />接下来</div>}
         {d.upcoming.map((f, i) => (
-          <div key={f.id} className="day-row glass locked">
+          <div key={f.id} className="day-row glass locked" style={{ ["--i" as string]: Math.min(i + 1, 10) }}>
             <Lock size={18} />
             <span className="day-tag">第{f.day_index}天</span>
             <span className="day-task">{f.title}</span>

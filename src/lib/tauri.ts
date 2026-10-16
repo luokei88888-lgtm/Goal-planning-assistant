@@ -213,3 +213,8 @@ export const dbRestoreDefault = (conflict: DbConflict = "ask") => invoke<DbMoveR
 export const dbRelink = (dir: string) => invoke<DbLocation>("db_relink", { dir });
 export const dbUseDefault = () => invoke<DbLocation>("db_use_default");
 export const dbOpenFolder = () => invoke<void>("db_open_folder");
+
+// ---------- 动效 ----------
+export const getReduceMotion = () => invoke<boolean>("get_reduce_motion");
+export const setReduceMotion = (on: boolean) => invoke<boolean>("set_reduce_motion", { on });
+export const celebrateOnce = (goalId: number, key: string) => invoke<boolean>("celebrate_once", { goalId, key });

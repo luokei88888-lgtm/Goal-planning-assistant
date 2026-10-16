@@ -615,6 +615,21 @@ pub fn set_ui_theme(app: AppHandle, theme: String) -> Result<String, String> {
     reminder::set_ui_theme(&open(&app)?, &theme)
 }
 
+#[tauri::command]
+pub fn get_reduce_motion(app: AppHandle) -> Result<bool, String> {
+    reminder::reduce_motion(&open(&app)?)
+}
+
+#[tauri::command]
+pub fn set_reduce_motion(app: AppHandle, on: bool) -> Result<bool, String> {
+    reminder::set_reduce_motion(&open(&app)?, on)
+}
+
+#[tauri::command]
+pub fn celebrate_once(app: AppHandle, goal_id: i64, key: String) -> Result<bool, String> {
+    reminder::celebrate_once(&open(&app)?, goal_id, &key)
+}
+
 /// 关闭询问对话框的选择：tray / exit；remember=true 时写入设置
 #[tauri::command]
 pub fn close_window_choice(app: AppHandle, action: String, remember: bool) -> Result<(), String> {

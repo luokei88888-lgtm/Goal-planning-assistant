@@ -1,0 +1,106 @@
+/* ===== 动态效果（节奏参数同动效原型：--d 220ms，--e cubic-bezier(.2,.8,.2,1)） =====
+   只动 transform / opacity；减少动画时（html[data-motion=reduce]）基本瞬间完成；页面不可见时暂停 */
+:root { --d: 220ms; --e: cubic-bezier(.2, .8, .2, 1); }
+
+@keyframes m-pin { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes m-fade { from { opacity: 0; } }
+@keyframes m-zoom { from { opacity: 0; transform: scale(.88); } }
+@keyframes m-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes m-pop { 0% { transform: scale(1); } 40% { transform: scale(1.5) rotate(-10deg); } 100% { transform: scale(1); } }
+@keyframes m-slide { from { opacity: 0; transform: translateX(var(--m-x, -16px)); } }
+@keyframes m-bounce { 0%, 60%, 100% { transform: none; opacity: .5; } 30% { transform: translateY(-5px); opacity: 1; } }
+@keyframes m-rise { from { transform: scaleY(0); } }
+@keyframes m-grow { from { transform: scaleX(0); } }
+@keyframes m-lit { from { opacity: .12; } }
+@keyframes m-drift { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(8%, 6%) scale(1.12); } 100% { transform: translate(-6%, -4%) scale(.95); } }
+@keyframes m-breathe { 0%, 100% { opacity: .62; } 50% { opacity: 1; } }
+@keyframes m-ink { 0% { opacity: .55; transform: scale(1) translate(0, 0); } 50% { opacity: .9; transform: scale(1.08) translate(-2%, 1%); } 100% { opacity: .6; transform: scale(1.02) translate(2%, -1%); } }
+
+/* 1. 页面切换：内容淡入上移（只用 backwards，结束后不残留 transform，避免影响弹窗定位） */
+.main > .page { animation: m-pin 280ms var(--e) backwards; }
+
+/* 2. 侧栏滑动高亮块 */
+.sidebar { position: relative; }
+.sidebar .nav-item:not(.nav-hl) { position: relative; z-index: 1; }
+.nav-hl { position: absolute !important; left: 0; top: 0; z-index: 0; margin: 0 !important; padding: 0 !important; pointer-events: none;
+  transition: transform 260ms var(--e), width 260ms var(--e), height 260ms var(--e) !important; }
+html body .app-shell .sidebar.has-hl .nav-item.active:not(.nav-hl) { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+
+/* 3. 标签滑动高亮块 */
+.seg.has-hl { position: relative; }
+.seg.has-hl > button:not(.seg-hl) { position: relative; z-index: 1; transition: color var(--d); }
+.seg .seg-hl { position: absolute !important; left: 0; top: 0; z-index: 0; padding: 0 !important; pointer-events: none;
+  transition: transform 260ms var(--e), width 260ms var(--e) !important; }
+html body .page .seg.has-hl button.on:not(.seg-hl) { background: transparent !important; box-shadow: none !important; border-color: transparent !important; }
+
+/* 悬停抬起 / 按下缩小 */
+.goal-card, .kpi, .tpl-card, .rank-item, .theme-card, .day-row { transition: transform var(--d) var(--e), box-shadow var(--d), border-color var(--d), background var(--d); }
+.goal-card:hover, .kpi:hover, .tpl-card:hover, .rank-item:hover, .theme-card:hover { transform: translateY(-3px); }
+button { transition: transform 150ms var(--e), filter var(--d), background var(--d), box-shadow var(--d), color var(--d), border-color var(--d); }
+button:active:not(:disabled):not(.nav-hl):not(.seg-hl) { transform: scale(.96); }
+html[data-theme="brutal"] button:active:not(:disabled):not(.nav-hl):not(.seg-hl) { transform: translate(3px, 3px) !important; box-shadow: none !important; }
+html[data-theme="neu"] button:active:not(:disabled):not(.nav-hl):not(.seg-hl) { transform: none !important; box-shadow: inset 4px 4px 8px #c3c8cf, inset -4px -4px 8px #ffffff !important; }
+
+/* 4. 弹窗：背景模糊变暗 + 缩放弹出 */
+.modal-mask { animation: m-fade 200ms backwards; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.modal-mask > * { animation: m-zoom 260ms var(--e) backwards; }
+
+/* 5. 依次浮现（--i 为序号） */
+.m-stagger > * { animation: m-up 260ms var(--e) backwards; animation-delay: calc(var(--i, 0) * 60ms); }
+.tpl-grid.m-stagger > * { animation-delay: calc(120ms + var(--i, 0) * 70ms); }
+
+/* 打卡：勾选弹跳、进度条平滑增长 */
+.m-pop { display: inline-flex; animation: m-pop 300ms var(--e); }
+.bar span.m-fill { width: 100% !important; transform-origin: left center; transform: scaleX(var(--p, 0)); transition: transform 300ms var(--e) !important; }
+.bar span.m-fill.m-init { transition: none !important; }
+
+/* 6. 统计 */
+.kpi { position: relative; }
+.kpi-ring { position: absolute; right: 12px; top: 12px; width: 44px; height: 44px; transform: rotate(-90deg); }
+.kpi-ring circle { fill: none; stroke-width: 5; }
+.kpi-ring .bg { stroke: rgba(var(--k-255-255-255), .1); }
+.kpi-ring .fg { stroke: var(--cyan); stroke-linecap: round; transition: stroke-dashoffset 900ms var(--e); }
+html:not([data-theme="neon"]) .kpi-ring .bg { stroke: var(--t-bar-bg, rgba(0,0,0,.1)); }
+html:not([data-theme="neon"]) .kpi-ring .fg { stroke: var(--t-accent, var(--cyan)); }
+.trend-bar { transform-box: fill-box; transform-origin: 50% 100%; animation: m-rise 300ms var(--e) backwards; animation-delay: calc(100ms + var(--i, 0) * 60ms); }
+.trend-line, .trend-dot, .trend-val { animation: m-fade 400ms ease backwards; animation-delay: 560ms; }
+.hm-grid .hm-cell { animation: m-lit 200ms ease backwards; animation-delay: calc(200ms + var(--i, 0) * 8ms); }
+.rank-bar i { transform-origin: left center; animation: m-grow 600ms var(--e) backwards; animation-delay: 200ms; }
+
+/* 7. 聊天 */
+.row-user.m-in { --m-x: 16px; animation: m-slide 240ms var(--e) backwards; }
+.row-ai.m-in { --m-x: -16px; animation: m-slide 240ms var(--e) backwards; }
+.typing { display: inline-flex; align-items: center; gap: 4px; padding: 4px 2px; }
+.typing i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: m-bounce 900ms infinite; }
+.typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
+.opt-list > .opt-btn { animation: m-up 220ms var(--e) backwards; animation-delay: calc(var(--i, 0) * 70ms); }
+
+/* 彩带与庆祝提示条 */
+.confetti-canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 400; pointer-events: none; }
+.celebrate-toast { position: fixed; left: 50%; top: 70px; z-index: 401; padding: 10px 22px; border-radius: 999px; font-weight: 700; font-size: 15px;
+  color: var(--text); pointer-events: none; opacity: 0; transform: translateX(-50%); transition: opacity 250ms, transform 250ms var(--e);
+  border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.celebrate-toast.on { opacity: 1; transform: translateX(-50%) translateY(6px); }
+html:not([data-theme="neon"]) .celebrate-toast { background: var(--t-modal-bg) !important; border: var(--t-panel-border) !important; box-shadow: var(--t-modal-shadow) !important; }
+html[data-theme="neon"] .celebrate-toast { background: rgba(14,16,34,.92); border-color: var(--cyan); box-shadow: 0 0 16px rgba(var(--k-34-230-255), .45); }
+
+/* 8. 主题专属 */
+html[data-theme="glass"] .bg-glow { will-change: transform; animation: m-drift 22s ease-in-out infinite alternate; }
+html[data-theme="glass"] .bg-glow.g2 { animation-duration: 28s; animation-delay: -9s; }
+html[data-theme="neon"] .today-card::before { animation: m-breathe 4.5s ease-in-out infinite; }
+html[data-theme="neon"] .nav-hl { animation: m-breathe 4.5s ease-in-out infinite; animation-delay: -2s; }
+html[data-theme="ink"] .app-bg::after { content: ""; position: absolute; inset: -10%; pointer-events: none; z-index: 0;
+  background: radial-gradient(28% 32% at 82% 18%, rgba(42,38,34,.10), transparent 70%), radial-gradient(30% 28% at 14% 86%, rgba(42,38,34,.08), transparent 70%);
+  will-change: transform, opacity; animation: m-ink 26s ease-in-out infinite alternate; }
+
+/* 9. 减少动画：基本瞬间完成；背景停止 */
+html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-motion="reduce"] *::after {
+  animation-duration: 1ms !important; animation-iteration-count: 1 !important; animation-delay: 0ms !important; transition-duration: 1ms !important; transition-delay: 0ms !important; }
+html[data-motion="reduce"] .bg-glow, html[data-motion="reduce"] .app-bg::after, html[data-motion="reduce"] .today-card::before, html[data-motion="reduce"] .nav-hl,
+html[data-motion="reduce"] .typing i { animation: none !important; }
+html[data-motion="reduce"] .goal-card:hover, html[data-motion="reduce"] .kpi:hover, html[data-motion="reduce"] .tpl-card:hover,
+html[data-motion="reduce"] .rank-item:hover, html[data-motion="reduce"] .theme-card:hover { transform: none; }
+/* 窗口最小化 / 托盘：暂停一切动画 */
+html[data-paused] *, html[data-paused] *::before, html[data-paused] *::after { animation-play-state: paused !important; }
+.checkin-btn .undo-hint { opacity: .55; margin-left: -10px; }
+.kpi.has-ring { position: relative; }

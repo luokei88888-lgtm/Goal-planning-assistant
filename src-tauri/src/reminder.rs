@@ -145,6 +145,31 @@ pub fn set_ui_theme(conn: &Connection, v: &str) -> R<String> {
     Ok(v.into())
 }
 
+/// 「减少动画」开关，默认关闭
+pub fn reduce_motion(conn: &Connection) -> R<bool> {
+    Ok(get_setting(conn, "reduce_motion")?.as_deref() == Some("1"))
+}
+
+pub fn set_reduce_motion(conn: &Connection, on: bool) -> R<bool> {
+    set_setting(conn, "reduce_motion", if on { "1" } else { "0" })?;
+    Ok(on)
+}
+
+pub const MILESTONES: [&str; 5] = ["streak7", "streak14", "streak21", "streak30", "all_done"];
+
+/// 里程碑庆祝只放一次：第一次调用返回 true 并记下，之后（含撤销后重新打卡）都返回 false
+pub fn celebrate_once(conn: &Connection, goal_id: i64, key: &str) -> R<bool> {
+    if !MILESTONES.contains(&key) {
+        return Err("未知的里程碑".into());
+    }
+    let k = format!("celebrated:{goal_id}:{key}");
+    if get_setting(conn, &k)?.is_some() {
+        return Ok(false);
+    }
+    set_setting(conn, &k, "1")?;
+    Ok(true)
+}
+
 pub fn mark_sent(conn: &Connection, key: &str, date: &str, now: i64) -> R<()> {
     conn.execute("INSERT OR IGNORE INTO reminder_log (key, date, sent_at) VALUES (?1, ?2, ?3)", params![key, date, now]).map_err(e)?;
     Ok(())
@@ -352,5 +377,19 @@ mod tests {
         assert!(set_ui_theme(&c, "bad").is_err());
         set_setting(&c, "ui_theme", "zzz").unwrap();
         assert_eq!(ui_theme(&c).unwrap(), "glass");
+    }
+
+    #[test]
+    fn reduce_motion_and_celebrate_once() {
+        let c = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&c).unwrap();
+        assert!(!reduce_motion(&c).unwrap());
+        assert!(set_reduce_motion(&c, true).unwrap());
+        assert!(reduce_motion(&c).unwrap());
+        assert!(celebrate_once(&c, 1, "streak7").unwrap());
+        assert!(!celebrate_once(&c, 1, "streak7").unwrap(), "同一里程碑只庆祝一次");
+        assert!(celebrate_once(&c, 2, "streak7").unwrap(), "按目标分别记录");
+        assert!(celebrate_once(&c, 1, "all_done").unwrap());
+        assert!(celebrate_once(&c, 1, "nope").is_err());
     }
 }
