@@ -589,7 +589,10 @@ button:disabled { opacity: .55; cursor: wait; }
 .wc-line.sub { color: var(--muted); font-size: 12px; }
 .wc-line.sub i { font-style: normal; }
 .wc-stale { font-size: 11px; color: var(--pink); }
-.aqi-good { color: rgb(var(--k-74-222-128)) !important; } .aqi-ok { color: rgb(var(--k-250-204-21)) !important; } .aqi-mid { color: rgb(var(--k-251-146-60)) !important; } .aqi-bad { color: var(--pink) !important; }
+/* 国标 AQI 六级颜色（深色主题用亮色） */
+.aqi-l1 { color: #4ade80 !important; } .aqi-l2 { color: #facc15 !important; } .aqi-l3 { color: #fb923c !important; }
+.aqi-l4 { color: #ff4d5e !important; } .aqi-l5 { color: #c084fc !important; } .aqi-l6 { color: #e11d48 !important; }
+.wm-aqi { font-style: normal; font-size: 11px; line-height: 1; white-space: nowrap; }
 .weather-modal { width: min(640px, 94vw); max-height: 88vh; border-radius: 18px; display: flex; flex-direction: column; overflow: hidden; }
 .wm-now { display: flex; align-items: center; gap: 12px; font-size: 44px; margin: 4px 0 0; }
 .wm-now small { font-size: 18px; color: var(--cyan); font-weight: 600; }

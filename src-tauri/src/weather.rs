@@ -95,16 +95,75 @@ fn is_snow(c: i64) -> bool {
     matches!(c, 71..=77 | 85 | 86)
 }
 
-/// 美标 AQI 等级（与国标分级一致的区间）
-pub fn aqi_level(aqi: i64) -> &'static str {
+/// 国标 HJ 633-2012 六级：返回（等级，色阶 1～6）
+pub fn aqi_level(aqi: i64) -> (&'static str, u8) {
     match aqi {
-        i64::MIN..=50 => "优",
-        51..=100 => "良",
-        101..=150 => "轻度污染",
-        151..=200 => "中度污染",
-        201..=300 => "重度污染",
-        _ => "严重污染",
+        i64::MIN..=50 => ("优", 1),
+        51..=100 => ("良", 2),
+        101..=150 => ("轻度污染", 3),
+        151..=200 => ("中度污染", 4),
+        201..=300 => ("重度污染", 5),
+        _ => ("严重污染", 6),
     }
+}
+
+/// IAQI 分段：0 50 100 150 200 300 400 500
+const IAQI: [f64; 8] = [0.0, 50.0, 100.0, 150.0, 200.0, 300.0, 400.0, 500.0];
+// HJ 633-2012 表 1 浓度限值（μg/m³，CO 为 mg/m³）
+const SO2_1H: [f64; 5] = [0.0, 150.0, 500.0, 650.0, 800.0];
+const SO2_24H: [f64; 8] = [0.0, 50.0, 150.0, 475.0, 800.0, 1600.0, 2100.0, 2620.0];
+const NO2_1H: [f64; 8] = [0.0, 100.0, 200.0, 700.0, 1200.0, 2340.0, 3090.0, 3840.0];
+const CO_1H: [f64; 8] = [0.0, 5.0, 10.0, 35.0, 60.0, 90.0, 120.0, 150.0];
+const O3_1H: [f64; 8] = [0.0, 160.0, 200.0, 300.0, 400.0, 800.0, 1000.0, 1200.0];
+// 实时发布惯例：PM 用小时浓度套 24 小时限值
+const PM10_24H: [f64; 8] = [0.0, 50.0, 150.0, 250.0, 350.0, 420.0, 500.0, 600.0];
+const PM25_24H: [f64; 8] = [0.0, 35.0, 75.0, 115.0, 150.0, 250.0, 350.0, 500.0];
+
+/// 分段线性插值，结果向上取整；超过最高限值按 500
+fn iaqi_with(bp: &[f64], c: f64) -> i64 {
+    if !c.is_finite() || c <= 0.0 {
+        return 0;
+    }
+    for i in 1..bp.len() {
+        if c <= bp[i] {
+            let v = (IAQI[i] - IAQI[i - 1]) / (bp[i] - bp[i - 1]) * (c - bp[i - 1]) + IAQI[i - 1];
+            return (v - 1e-9).ceil() as i64;
+        }
+    }
+    500
+}
+
+/// 各污染物小时浓度（μg/m³；co 也是 μg/m³，内部换算 mg/m³）
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Conc {
+    pub pm2_5: Option<f64>,
+    pub pm10: Option<f64>,
+    pub no2: Option<f64>,
+    pub o3: Option<f64>,
+    pub so2: Option<f64>,
+    pub co: Option<f64>,
+}
+
+/// 返回（AQI，首要污染物列表）；一项浓度都没有时 None
+pub fn cn_aqi(c: &Conc) -> Option<(i64, Vec<&'static str>)> {
+    let so2 = c.so2.map(|v| if v > 800.0 { iaqi_with(&SO2_24H, v) } else { iaqi_with(&SO2_1H, v) });
+    let items = [
+        ("PM2.5", c.pm2_5.map(|v| iaqi_with(&PM25_24H, v))),
+        ("PM10", c.pm10.map(|v| iaqi_with(&PM10_24H, v))),
+        ("O₃", c.o3.map(|v| iaqi_with(&O3_1H, v))),
+        ("NO₂", c.no2.map(|v| iaqi_with(&NO2_1H, v))),
+        ("SO₂", so2),
+        ("CO", c.co.map(|v| iaqi_with(&CO_1H, v / 1000.0))),
+    ];
+    let max = items.iter().filter_map(|(_, v)| *v).max()?;
+    let primary = if max > 50 { items.iter().filter(|(_, v)| *v == Some(max)).map(|(n, _)| *n).collect() } else { Vec::new() };
+    Some((max, primary))
+}
+
+pub const AIR_VARS: &str = "pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide,carbon_monoxide";
+
+fn conc_from(get: impl Fn(&str) -> Option<f64>) -> Conc {
+    Conc { pm2_5: get("pm2_5"), pm10: get("pm10"), no2: get("nitrogen_dioxide"), o3: get("ozone"), so2: get("sulphur_dioxide"), co: get("carbon_monoxide") }
 }
 
 fn wind_dir(deg: f64) -> &'static str {
@@ -152,13 +211,29 @@ pub struct Hour {
     pub text: String,
     pub icon: String,
     pub precip: i64,
+    /// 该小时的国标 AQI（有空气质量数据时）
+    #[serde(default)]
+    pub aqi: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Aqi {
-    pub us_aqi: i64,
-    pub pm2_5: Option<f64>,
+    /// 国标 HJ 633-2012 实时 AQI（按小时浓度计算）
+    pub aqi: i64,
     pub level: String,
+    /// 色阶 1～6（优～严重污染）
+    pub tone: u8,
+    /// 首要污染物，AQI>50 时才有
+    pub primary: Vec<String>,
+    pub pm2_5: Option<f64>,
+}
+
+impl Aqi {
+    pub fn from_conc(c: &Conc) -> Option<Aqi> {
+        let (v, p) = cn_aqi(c)?;
+        let (level, tone) = aqi_level(v);
+        Some(Aqi { aqi: v, level: level.into(), tone, primary: p.into_iter().map(String::from).collect(), pm2_5: c.pm2_5 })
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -182,6 +257,14 @@ fn f(v: &Value, k: &str) -> R<f64> {
 }
 fn hm(t: &str) -> String {
     t.get(11..16).unwrap_or(t).to_string()
+}
+
+/// 逐小时空气质量：按时间（YYYY-MM-DDTHH:00）对齐，用同一套国标算法
+fn hour_aqi(air: Option<&Value>, time: &str) -> Option<i64> {
+    let h = air?.get("hourly")?;
+    let idx = h.get("time")?.as_array()?.iter().position(|t| t.as_str() == Some(time))?;
+    let c = conc_from(|k| h.get(k)?.as_array()?.get(idx)?.as_f64());
+    cn_aqi(&c).map(|(v, _)| v)
 }
 
 /// 解析 forecast（+可选 air-quality）JSON
@@ -230,13 +313,11 @@ pub fn parse(fc: &Value, air: Option<&Value>, city: &City, now: i64) -> R<Weathe
             let code = codes.get(i).and_then(Value::as_i64).unwrap_or(0);
             let day = sr.is_empty() || (t >= sr && t < ss);
             let (text, icon) = wmo(code, day);
-            Hour { time: t, temp: temps.get(i).and_then(Value::as_f64).unwrap_or(0.0), code, text: text.into(), icon: icon.into(), precip: pp.get(i).and_then(Value::as_i64).unwrap_or(0) }
+            let full = times[i].as_str().unwrap_or("");
+            Hour { time: t, temp: temps.get(i).and_then(Value::as_f64).unwrap_or(0.0), code, text: text.into(), icon: icon.into(), precip: pp.get(i).and_then(Value::as_i64).unwrap_or(0), aqi: hour_aqi(air, full) }
         })
         .collect::<Vec<_>>();
-    let aqi = air.and_then(|a| a.get("current")).and_then(|c| {
-        let v = c.get("us_aqi")?.as_f64()?.round() as i64;
-        Some(Aqi { us_aqi: v, pm2_5: c.get("pm2_5").and_then(Value::as_f64), level: aqi_level(v).into() })
-    });
+    let aqi = air.and_then(|a| a.get("current")).and_then(|c| Aqi::from_conc(&conc_from(|k| c.get(k).and_then(Value::as_f64))));
     let mut w = Weather { city: city.clone(), fetched_at: now, current, today, hourly, aqi, tip: String::new(), stale: false, error: None };
     w.tip = tip(&w);
     Ok(w)
@@ -262,10 +343,10 @@ pub fn tip(w: &Weather) -> String {
         t.push("有雪，路面湿滑，通勤预留时间".into());
     }
     if let Some(a) = &w.aqi {
-        if a.us_aqi > 150 {
-            t.push(format!("空气质量{}（AQI {}），减少户外运动，出门戴口罩", a.level, a.us_aqi));
-        } else if a.us_aqi > 100 {
-            t.push(format!("空气{}（AQI {}），敏感人群减少户外运动", a.level, a.us_aqi));
+        if a.aqi > 150 {
+            t.push(format!("空气{}（AQI {}），减少户外运动，出门戴口罩", a.level, a.aqi));
+        } else if a.aqi > 100 {
+            t.push(format!("空气{}（AQI {}），敏感人群减少户外运动", a.level, a.aqi));
         }
     }
     if c.wind_level >= 6 {
@@ -280,7 +361,7 @@ pub fn tip(w: &Weather) -> String {
     }
     t.truncate(2);
     if t.is_empty() {
-        let good = w.aqi.as_ref().is_none_or(|a| a.us_aqi <= 100);
+        let good = w.aqi.as_ref().is_none_or(|a| a.aqi <= 100);
         return if good { "天气不错，适合按计划完成今天的目标".into() } else { "天气平稳，按计划进行就好".into() };
     }
     t.join("；")
@@ -361,7 +442,7 @@ pub async fn fetch(city: &City, now: i64) -> R<Weather> {
         ("wind_speed_unit", "kmh".to_string()),
     ]);
     let mut aq = ll;
-    aq.push(("current", "us_aqi,pm2_5".to_string()));
+    aq.extend([("current", AIR_VARS.to_string()), ("hourly", AIR_VARS.to_string()), ("forecast_days", "2".to_string())]);
     let (fc, air) = tokio::join!(get_json(&c, FORECAST, &fq), get_json(&c, AIR, &aq));
     let fc = fc?;
     parse(&fc, air.ok().as_ref(), city, now)
@@ -428,13 +509,17 @@ mod tests {
         assert_eq!(wmo(95, true).1, "CloudLightning");
         assert_eq!(wmo(75, true).0, "大雪");
         assert_eq!(wmo(1234, true).0, "未知");
-        assert_eq!((aqi_level(42), aqi_level(120), aqi_level(190), aqi_level(400)), ("优", "轻度污染", "中度污染", "严重污染"));
+        assert_eq!((aqi_level(42).0, aqi_level(120).0, aqi_level(190).0, aqi_level(400).0), ("优", "轻度污染", "中度污染", "严重污染"));
+        assert_eq!((aqi_level(50), aqi_level(51), aqi_level(300), aqi_level(301)), (("优", 1), ("良", 2), ("重度污染", 5), ("严重污染", 6)));
         assert_eq!((wind_dir(225.0), wind_dir(350.0), wind_level(0.3), wind_level(40.0)), ("西南风", "北风", 0, 6));
     }
 
     #[test]
     fn parse_sample() {
-        let air = json!({"current": {"time": "2026-10-15T10:00", "us_aqi": 190, "pm2_5": 99.0}});
+        // PM2.5 140 → IAQI 186（中度污染）
+        let air = json!({"current": {"time": "2026-10-15T10:00", "pm2_5": 140.0, "pm10": 150.0, "nitrogen_dioxide": 40.0, "ozone": 30.0, "sulphur_dioxide": 5.0, "carbon_monoxide": 800.0},
+                         "hourly": {"time": ["2026-10-15T10:00", "2026-10-15T11:00"], "pm2_5": [140.0, 20.7], "pm10": [150.0, 22.5], "nitrogen_dioxide": [40.0, 43.0],
+                                    "ozone": [30.0, 23.0], "sulphur_dioxide": [5.0, 8.6], "carbon_monoxide": [800.0, 702.0]}});
         let w = parse(&sample(), Some(&air), &City::beijing(), 1000).unwrap();
         assert_eq!((w.current.temp, w.current.text.as_str(), w.current.humidity), (18.9, "晴", 36.0));
         assert_eq!((w.today.max, w.today.min, w.today.precip_max), (22.4, 9.1, 20));
@@ -443,8 +528,10 @@ mod tests {
         assert_eq!(w.hourly[0].time, "10:00");
         assert_eq!((w.hourly[1].icon.as_str(), w.hourly[2].icon.as_str()), ("CloudSun", "Cloud"));
         let a = w.aqi.as_ref().unwrap();
-        assert_eq!((a.us_aqi, a.level.as_str()), (190, "中度污染"));
-        assert!(w.tip.contains("AQI 190") && w.tip.contains("温差"), "{}", w.tip);
+        assert_eq!((a.aqi, a.level.as_str(), a.tone), (186, "中度污染", 4));
+        assert_eq!(a.primary, ["PM2.5"]);
+        assert!(w.tip.contains("AQI 186") && w.tip.contains("温差"), "{}", w.tip);
+        assert_eq!((w.hourly[0].aqi, w.hourly[1].aqi, w.hourly[2].aqi), (Some(186), Some(30), None));
         // 没有空气质量也能用
         let w = parse(&sample(), None, &City::beijing(), 1000).unwrap();
         assert!(w.aqi.is_none());
@@ -469,7 +556,7 @@ mod tests {
         assert!(tip(&w).contains("雷阵雨"));
         let mut w = base.clone();
         w.today.min = 15.0;
-        w.aqi = Some(Aqi { us_aqi: 120, pm2_5: None, level: "轻度污染".into() });
+        w.aqi = Some(Aqi { aqi: 120, pm2_5: None, level: "轻度污染".into(), tone: 3, primary: vec!["PM2.5".into()] });
         assert!(tip(&w).contains("敏感人群"));
         w.current.feels = -3.0;
         w.today.max = 2.0;
@@ -519,6 +606,50 @@ mod tests {
         assert!(fallback(&c, &bj, "x".into()).is_err());
     }
 
+    #[test]
+    fn cn_aqi_breakpoints() {
+        // 分段边界正好落在 IAQI 节点
+        assert_eq!((iaqi_with(&PM25_24H, 35.0), iaqi_with(&PM25_24H, 75.0), iaqi_with(&PM25_24H, 115.0), iaqi_with(&PM25_24H, 150.0)), (50, 100, 150, 200));
+        assert_eq!((iaqi_with(&PM25_24H, 250.0), iaqi_with(&PM25_24H, 500.0), iaqi_with(&PM25_24H, 900.0)), (300, 500, 500));
+        assert_eq!((iaqi_with(&PM25_24H, 0.0), iaqi_with(&PM25_24H, 35.1)), (0, 51));
+        assert_eq!((iaqi_with(&PM10_24H, 50.0), iaqi_with(&PM10_24H, 150.0), iaqi_with(&PM10_24H, 420.0)), (50, 100, 300));
+        assert_eq!((iaqi_with(&O3_1H, 160.0), iaqi_with(&O3_1H, 200.0), iaqi_with(&O3_1H, 800.0)), (50, 100, 300));
+        assert_eq!((iaqi_with(&NO2_1H, 100.0), iaqi_with(&NO2_1H, 200.0), iaqi_with(&NO2_1H, 700.0)), (50, 100, 150));
+        assert_eq!((iaqi_with(&CO_1H, 5.0), iaqi_with(&CO_1H, 10.0), iaqi_with(&CO_1H, 35.0)), (50, 100, 150));
+        assert_eq!((iaqi_with(&SO2_1H, 150.0), iaqi_with(&SO2_1H, 500.0), iaqi_with(&SO2_1H, 800.0)), (50, 100, 200));
+        // SO2 超过 800 改用 24 小时限值
+        assert_eq!(cn_aqi(&Conc { so2: Some(1600.0), ..Default::default() }).unwrap().0, 300);
+        // CO 按 mg/m³：5000 μg/m³ = 5 mg/m³ → 50
+        assert_eq!(cn_aqi(&Conc { co: Some(5000.0), ..Default::default() }).unwrap().0, 50);
+        // 首要污染物：AQI>50 才给，并列都列出
+        assert!(cn_aqi(&Conc { pm2_5: Some(30.0), ..Default::default() }).unwrap().1.is_empty());
+        let (v, p) = cn_aqi(&Conc { pm2_5: Some(75.0), pm10: Some(150.0), ..Default::default() }).unwrap();
+        assert_eq!((v, p), (100, vec!["PM2.5", "PM10"]));
+        assert!(cn_aqi(&Conc::default()).is_none());
+    }
+
+    #[test]
+    fn cn_aqi_real_beijing_sample() {
+        // Open-Meteo us_aqi=189，但小时浓度很低；国标实时应为 30 优
+        let c = Conc { pm2_5: Some(20.7), pm10: Some(22.5), no2: Some(43.0), o3: Some(23.0), so2: Some(8.6), co: Some(702.0) };
+        let a = Aqi::from_conc(&c).unwrap();
+        assert_eq!((a.aqi, a.level.as_str(), a.tone), (30, "优", 1));
+        assert!(a.primary.is_empty());
+    }
+
+    #[test]
+    fn old_cache_with_us_aqi_is_invalidated() {
+        let c = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&c).unwrap();
+        let mut w = parse(&sample(), None, &City::beijing(), 5000).unwrap();
+        w.aqi = Some(Aqi { aqi: 30, pm2_5: None, level: "优".into(), tone: 1, primary: vec![] });
+        let mut v = serde_json::to_value(&w).unwrap();
+        v["aqi"] = json!({"us_aqi": 189, "pm2_5": 20.7, "level": "中度污染"});
+        c.execute("INSERT INTO weather_cache (id, city_key, fetched_at, data) VALUES (1, ?1, 5000, ?2)", params![City::beijing().key(), v.to_string()]).unwrap();
+        assert!(cached(&c, &City::beijing(), 5060, false).unwrap().is_none(), "旧结构缓存直接失效");
+        assert!(fallback(&c, &City::beijing(), "x".into()).is_err());
+    }
+
     /// 联网实测：cargo test live_beijing -- --ignored --nocapture
     #[test]
     #[ignore]
@@ -526,7 +657,7 @@ mod tests {
         let w = tauri::async_runtime::block_on(fetch(&City::beijing(), 0)).unwrap();
         println!("LIVE 北京 {} 当前 {}° 体感 {}° {} 最高{}/最低{} 降水{}% AQI {:?} 日出{} 日落{} 逐时{}条 提示：{}",
             w.current.time, w.current.temp, w.current.feels, w.current.text, w.today.max, w.today.min, w.today.precip_max,
-            w.aqi.as_ref().map(|a| (a.us_aqi, a.level.clone())), w.today.sunrise, w.today.sunset, w.hourly.len(), w.tip);
+            w.aqi.as_ref().map(|a| (a.aqi, a.level.clone(), a.primary.clone())), w.today.sunrise, w.today.sunset, w.hourly.len(), w.tip);
         let c = tauri::async_runtime::block_on(search_city("丰台")).unwrap();
         println!("LIVE 搜索 丰台：{:?}", c.iter().take(3).map(|c| format!("{} {}", c.name, c.admin)).collect::<Vec<_>>());
     }

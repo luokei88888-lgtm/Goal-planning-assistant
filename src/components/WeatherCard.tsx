@@ -12,7 +12,8 @@ export const WeatherIcon = ({ name, size = 20 }: { name: string; size?: number }
 const cityFull = (w: Weather) => [w.city.name, w.city.admin !== w.city.name ? w.city.admin : "", w.city.country].filter(Boolean).join(" · ");
 const hm = (s: number) => { const d = new Date(s * 1000); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
 const t0 = (n: number) => `${Math.round(n)}°`;
-const aqiTone = (a: number) => (a <= 50 ? "good" : a <= 100 ? "ok" : a <= 150 ? "mid" : "bad");
+/** 国标六级色阶（与后端 aqi_level 相同区间） */
+const aqiTone = (a: number) => (a <= 50 ? 1 : a <= 100 ? 2 : a <= 150 ? 3 : a <= 200 ? 4 : a <= 300 ? 5 : 6);
 
 function Detail({ w, busy, onRefresh, onClose }: { w: Weather; busy: boolean; onRefresh: () => void; onClose: () => void }) {
   useEffect(() => {
@@ -52,7 +53,7 @@ function Detail({ w, busy, onRefresh, onClose }: { w: Weather; busy: boolean; on
             <div><Umbrella size={16} />降水概率<b>{w.today.precip_max}%</b></div>
             <div><Droplets size={16} />湿度<b>{Math.round(c.humidity)}%</b></div>
             <div><Wind size={16} />风<b>{c.wind_dir} {c.wind_level} 级</b><em>{c.wind_kmh.toFixed(1)} km/h</em></div>
-            {w.aqi && <div><Leaf size={16} />空气质量<b className={`aqi-${aqiTone(w.aqi.us_aqi)}`}>{w.aqi.us_aqi} {w.aqi.level}</b>{w.aqi.pm2_5 !== null && <em>PM2.5 {Math.round(w.aqi.pm2_5)}</em>}</div>}
+            {w.aqi && <div><Leaf size={16} />空气质量<b className={`aqi-l${w.aqi.tone}`}>AQI {w.aqi.aqi} {w.aqi.level}</b>{w.aqi.primary.length > 0 ? <em>首要污染物 {w.aqi.primary.join("、")}</em> : w.aqi.pm2_5 !== null && <em>PM2.5 {Math.round(w.aqi.pm2_5)} μg/m³</em>}</div>}
             <div><Sunrise size={16} />日出<b>{w.today.sunrise}</b></div>
             <div><Sunset size={16} />日落<b>{w.today.sunset}</b></div>
           </div>
@@ -64,12 +65,13 @@ function Detail({ w, busy, onRefresh, onClose }: { w: Weather; busy: boolean; on
                 <WeatherIcon name={h.icon} size={22} />
                 <b>{t0(h.temp)}</b>
                 <em className={h.precip >= 50 ? "wet" : ""}>{h.precip}%</em>
+                {h.aqi != null && <i className={`wm-aqi aqi-l${aqiTone(h.aqi)}`} title={`AQI ${h.aqi}`}>AQI {h.aqi}</i>}
               </div>
             ))}
           </div>
         </div>
         <footer className="plan-foot wm-foot">
-          <span className="muted">{w.stale ? <><WifiOff size={14} /> 离线 · </> : null}更新于 {hm(w.fetched_at)} · 数据来自 Open-Meteo（AQI 为美标）</span>
+          <span className="muted">{w.stale ? <><WifiOff size={14} /> 离线 · </> : null}更新于 {hm(w.fetched_at)} · 数据来自 Open-Meteo 模型估算，AQI 按国标计算，与监测站可能有差异</span>
           <button type="button" className="ghost-btn neon-cyan sm" disabled={busy} onClick={onRefresh}><RefreshCw size={15} className={busy ? "spin" : ""} />刷新</button>
         </footer>
       </div>
@@ -107,7 +109,7 @@ export function WeatherCard() {
         <span className="wc-col">
           <span className="wc-city" title={cityFull(w)}><MapPin size={11} /><em>{w.city.name}</em></span>
           <span className="wc-line"><b>{c.text}</b>{t0(w.today.max)}/{t0(w.today.min)}</span>
-          <span className="wc-line sub"><Umbrella size={12} />{w.today.precip_max}%{w.aqi && <><Leaf size={12} /><i className={`aqi-${aqiTone(w.aqi.us_aqi)}`}>AQI {w.aqi.us_aqi}</i></>}</span>
+          <span className="wc-line sub"><Umbrella size={12} />{w.today.precip_max}%{w.aqi && <><Leaf size={12} /><i className={`aqi-l${w.aqi.tone}`}>AQI {w.aqi.aqi} {w.aqi.level}</i></>}</span>
         </span>
         {w.stale && <span className="wc-stale">更新于 {hm(w.fetched_at)}</span>}
       </button>

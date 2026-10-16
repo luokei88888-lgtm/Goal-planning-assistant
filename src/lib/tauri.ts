@@ -182,8 +182,9 @@ export type Weather = {
   city: City; fetched_at: number; tip: string; stale: boolean; error: string | null;
   current: { time: string; temp: number; feels: number; code: number; text: string; icon: string; humidity: number; wind_kmh: number; wind_level: number; wind_dir: string; is_day: boolean };
   today: { max: number; min: number; precip_max: number; code: number; text: string; sunrise: string; sunset: string };
-  hourly: { time: string; temp: number; code: number; text: string; icon: string; precip: number }[];
-  aqi: { us_aqi: number; pm2_5: number | null; level: string } | null;
+  hourly: { time: string; temp: number; code: number; text: string; icon: string; precip: number; aqi?: number | null }[];
+  /** 国标 HJ 633-2012 实时 AQI；tone 1～6 对应优～严重污染 */
+  aqi: { aqi: number; level: string; tone: number; primary: string[]; pm2_5: number | null } | null;
 };
 export const weatherGet = (force = false) => invoke<Weather | null>("weather_get", { force });
 export const weatherGetSettings = () => invoke<WeatherSettings>("weather_get_settings");
