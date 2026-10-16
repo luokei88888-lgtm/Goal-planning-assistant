@@ -9,6 +9,7 @@ import { ReviewPage } from "./pages/ReviewPage";
 import { StatsPage } from "./pages/StatsPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { CloseDialog } from "./components/CloseDialog";
+import { DbMissingGuard } from "./components/DbDialogs";
 import "./styles/cyber-neon.css";
 import "./styles/themes/index.css";
 import { syncThemeFromDb } from "./lib/theme";
@@ -67,6 +68,7 @@ export default function App() {
       {page === "settings" && <SettingsPage onReset={onReset} />}
       {toast && <div className="toast">{toast}</div>}
       {askClose && <CloseDialog onClose={() => setAskClose(false)} />}
+      <DbMissingGuard onFixed={() => onReset("已切换数据库位置")} />
     </AppShell>
   );
 }

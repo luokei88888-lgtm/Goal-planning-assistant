@@ -910,3 +910,11 @@ button.status-pill:hover { border-color: rgba(var(--k-0-240-255),.6); box-shadow
 .theme-name { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 700; color: var(--text); }
 .theme-name svg { color: var(--cyan); }
 .theme-desc { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+/* 数据库位置 */
+.db-path { display: block; padding: 8px 12px; border-radius: 8px; font-family: Consolas, "Cascadia Mono", monospace; font-size: 13px; line-height: 1.5;
+  color: var(--text); background: rgba(var(--k-5-6-15), 0.55); border: 1px solid var(--line); word-break: break-all; user-select: text; }
+.close-desc .db-path { margin: 4px 0 2px; }
+.close-desc p { margin: 0 0 10px; }
+.db-modal { width: 540px; }
+.db-modal .close-foot { flex-wrap: wrap; }

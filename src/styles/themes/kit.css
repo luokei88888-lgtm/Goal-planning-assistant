@@ -110,3 +110,5 @@ html:not([data-theme="neon"]) .theme-card { background: var(--t-btn-bg) !importa
   box-shadow: var(--t-btn-shadow) !important; border-radius: var(--t-btn-radius-card, 14px) !important; }
 html:not([data-theme="neon"]) .theme-card.on { outline: 2px solid var(--t-accent); outline-offset: 2px; }
 html:not([data-theme="neon"]) .theme-name svg { color: var(--t-accent); }
+html:not([data-theme="neon"]) .db-path { background: var(--t-input-bg) !important; border: var(--t-input-border) !important; box-shadow: var(--t-input-shadow) !important; color: var(--text); }
+html:not([data-theme="neon"]) .close-desc { color: var(--text); }

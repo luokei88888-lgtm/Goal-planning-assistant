@@ -1,31 +1,9 @@
-//! SQLite 本地库：打开 + 迁移。
+//! SQLite 本地库：建表与结构迁移（打开哪个文件由 dblocation 决定）。
 //! 所有 DB 访问只通过 service 模块 / Tauri command，前端不直连。
 
 use rusqlite::Connection;
-use std::fs;
-use std::path::PathBuf;
 
 pub const DB_FILE_NAME: &str = "goal_plan.db";
-
-#[derive(Debug, thiserror::Error)]
-pub enum DbError {
-    #[error("创建数据目录失败: {0}")]
-    CreateDir(#[source] std::io::Error),
-    #[error("SQLite: {0}")]
-    Sqlite(#[from] rusqlite::Error),
-}
-
-pub fn db_path(app_data_dir: PathBuf) -> PathBuf {
-    app_data_dir.join(DB_FILE_NAME)
-}
-
-pub fn open_and_migrate(app_data_dir: PathBuf) -> Result<Connection, DbError> {
-    fs::create_dir_all(&app_data_dir).map_err(DbError::CreateDir)?;
-    let conn = Connection::open(db_path(app_data_dir))?;
-    conn.execute_batch("PRAGMA journal_mode = WAL;")?;
-    migrate(&conn)?;
-    Ok(conn)
-}
 
 const V1: &str = r#"
 CREATE TABLE goals (

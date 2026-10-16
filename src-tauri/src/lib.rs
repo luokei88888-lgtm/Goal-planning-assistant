@@ -2,6 +2,7 @@ mod backup;
 mod chat;
 mod commands;
 mod db;
+mod dblocation;
 mod draft;
 mod llm;
 mod reminder;
@@ -57,8 +58,9 @@ pub fn run() {
         .setup(|app| {
             match app.path().app_data_dir() {
                 Ok(dir) => {
-                    if let Err(e) = db::open_and_migrate(dir) {
-                        eprintln!("[db] startup migrate error: {e}");
+                    // 自定义位置找不到时不新建空库，由前端提示用户选择
+                    if let Err(e) = dblocation::open_current(&dir) {
+                        eprintln!("[db] startup open: {e}");
                     }
                 }
                 Err(e) => eprintln!("[db] no app data dir: {e}"),
@@ -150,6 +152,12 @@ pub fn run() {
             commands::get_close_action,
             commands::set_close_action,
             commands::get_ui_theme,
+            commands::db_location,
+            commands::db_change_location,
+            commands::db_restore_default,
+            commands::db_relink,
+            commands::db_use_default,
+            commands::db_open_folder,
             commands::set_ui_theme,
             commands::close_window_choice,
             commands::restore_goal,

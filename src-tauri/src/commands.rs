@@ -11,9 +11,13 @@ pub struct AppInfo {
     pub db_ready: bool,
 }
 
+fn app_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    app.path().app_data_dir().map_err(|e| format!("无法获取应用数据目录: {e}"))
+}
+
+/// 每次访问都按 config.json 解析数据库位置，所以更改位置后运行中即时切换
 fn open(app: &AppHandle) -> Result<Connection, String> {
-    let dir = app.path().app_data_dir().map_err(|e| format!("无法获取应用数据目录: {e}"))?;
-    let conn = crate::db::open_and_migrate(dir).map_err(|e| e.to_string())?;
+    let conn = crate::dblocation::open_current(&app_dir(app)?)?;
     // 每次访问前按本地日期切换进行中/已完成（覆盖启动、跨天、改方案、取消归档）
     let _ = service::refresh_statuses(&conn, &today());
     Ok(conn)
@@ -34,8 +38,7 @@ pub fn ping() -> String {
 
 #[tauri::command]
 pub fn get_app_info(app: AppHandle) -> Result<AppInfo, String> {
-    let dir = app.path().app_data_dir().map_err(|e| format!("无法获取应用数据目录: {e}"))?;
-    let db_path = crate::db::db_path(dir).display().to_string();
+    let db_path = crate::dblocation::resolve(&app_dir(&app)?).path;
     let db_ready = open(&app).is_ok();
     Ok(AppInfo { name: "目标计划助手".into(), version: env!("CARGO_PKG_VERSION").into(), db_path, db_ready })
 }
@@ -747,4 +750,54 @@ pub async fn model_status(app: AppHandle) -> Result<ModelStatus, String> {
         Ok(()) => mk("ok", String::new()),
         Err((k, why)) => mk(k, why),
     })
+}
+
+// ---------------- 数据库位置 ----------------
+use crate::dblocation::{self, Conflict, Location, MoveResult};
+
+#[tauri::command]
+pub fn db_location(app: AppHandle) -> Result<Location, String> {
+    Ok(dblocation::resolve(&app_dir(&app)?))
+}
+
+/// 把数据库迁到 dir；conflict：ask / use_existing / overwrite。目标已有同名库且为 ask 时返回 DB_EXISTS: 前缀错误
+#[tauri::command]
+pub fn db_change_location(app: AppHandle, dir: String, conflict: Option<String>) -> Result<MoveResult, String> {
+    let c = Conflict::parse(conflict.as_deref())?;
+    dblocation::move_to(&app_dir(&app)?, std::path::Path::new(&dir), c)
+}
+
+/// 恢复默认位置：把当前数据库迁回应用数据目录
+#[tauri::command]
+pub fn db_restore_default(app: AppHandle, conflict: Option<String>) -> Result<MoveResult, String> {
+    let c = Conflict::parse(conflict.as_deref())?;
+    let d = app_dir(&app)?;
+    dblocation::move_to(&d, &d, c)
+}
+
+/// 配置的位置找不到时：指向另一个已有数据库的文件夹
+#[tauri::command]
+pub fn db_relink(app: AppHandle, dir: String) -> Result<Location, String> {
+    dblocation::relink(&app_dir(&app)?, std::path::Path::new(&dir))
+}
+
+/// 配置的位置找不到时：回到默认位置
+#[tauri::command]
+pub fn db_use_default(app: AppHandle) -> Result<Location, String> {
+    dblocation::use_default(&app_dir(&app)?)
+}
+
+/// 在资源管理器里打开数据库所在文件夹（并选中文件）
+#[tauri::command]
+pub fn db_open_folder(app: AppHandle) -> Result<(), String> {
+    let loc = dblocation::resolve(&app_dir(&app)?);
+    let p = std::path::PathBuf::from(&loc.path);
+    let r = if p.is_file() {
+        std::process::Command::new("explorer").arg(format!("/select,{}", p.display())).spawn()
+    } else if std::path::Path::new(&loc.dir).is_dir() {
+        std::process::Command::new("explorer").arg(&loc.dir).spawn()
+    } else {
+        return Err(format!("文件夹不存在：{}", loc.dir));
+    };
+    r.map(|_| ()).map_err(|e| format!("打开文件夹失败：{e}"))
 }

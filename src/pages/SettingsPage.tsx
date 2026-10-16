@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { KeyRound, Cpu, Link2, Activity, Save, PlugZap, Trash2, ShieldCheck, TriangleAlert, X, Download, Upload, DatabaseBackup, BellRing, Moon, Power, PanelBottomClose, Building2, ExternalLink, CloudSun, Search, MapPin, ChevronDown, Loader, Check, Palette } from "lucide-react";
+import { KeyRound, Cpu, Link2, Activity, Save, PlugZap, Trash2, ShieldCheck, TriangleAlert, X, Download, Upload, DatabaseBackup, BellRing, Moon, Power, PanelBottomClose, Building2, ExternalLink, CloudSun, Search, MapPin, ChevronDown, Loader, Check, Palette, Database, FolderInput, FolderOpen, House } from "lucide-react";
 import { NeonSelect } from "../components/NeonSelect";
 import { THEMES, currentTheme, saveTheme } from "../lib/theme";
-import type { UiTheme } from "../lib/tauri";
+import type { UiTheme, DbLocation, DbMoveResult, DbConflict } from "../lib/tauri";
+import { dbLocation, dbChangeLocation, dbRestoreDefault, dbOpenFolder, DB_EXISTS, DB_MISSING } from "../lib/tauri";
+import { ChoiceDialog } from "../components/DbDialogs";
 import { getAppInfo, getSettings, saveSettings, deleteApiKey, testConnection, factoryReset, exportBackup, inspectBackup, importBackup, type AppInfo, type SettingsView, type BackupInfo, getReminderSettings, saveReminderSettings, sendTestNotification, type ReminderSettings, weatherGetSettings, weatherSaveSettings, weatherSearchCity, type WeatherSettings, type City, fetchModels, getCloseAction, setCloseAction, type CloseAction } from "../lib/tauri";
 import { enable as enableAutostart, disable as disableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
 
@@ -280,6 +282,75 @@ function ThemePanel() {
   );
 }
 
+function DbPanel({ info, onMoved }: { info: AppInfo | null; onMoved: (text: string) => void }) {
+  const [loc, setLoc] = useState<DbLocation | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [conflict, setConflict] = useState<{ target: string; dir: string | null } | null>(null);
+  const [askDefault, setAskDefault] = useState(false);
+  const reload = () => dbLocation().then(setLoc).catch(() => {});
+  useEffect(() => { reload(); }, [info]);
+  const report = (r: DbMoveResult) => {
+    const parts = [r.used_existing ? `已切换到该位置已有的数据库：${r.path}` : `数据库已迁移到：${r.path}`, r.note];
+    if (r.replaced_backup) parts.push(`目标位置原来的数据库已改名备份为：${r.replaced_backup}`);
+    setMsg({ ok: true, text: parts.join("\n") });
+    reload();
+    onMoved(r.used_existing ? "已切换数据库位置" : "数据库位置已更改");
+  };
+  // dir 为 null 表示恢复默认位置
+  const doMove = async (dir: string | null, c: DbConflict) => {
+    setBusy(true); setMsg(null);
+    try {
+      report(dir === null ? await dbRestoreDefault(c) : await dbChangeLocation(dir, c));
+      setConflict(null);
+    } catch (e) {
+      const s = String(e);
+      if (s.startsWith(DB_EXISTS)) setConflict({ target: s.slice(DB_EXISTS.length), dir });
+      else { setConflict(null); setMsg({ ok: false, text: s.replace(DB_MISSING, "") }); }
+    } finally { setBusy(false); }
+  };
+  const change = async () => {
+    const dir = await openDialog({ directory: true, title: "选择新的数据库存放文件夹" });
+    if (typeof dir === "string") doMove(dir, "ask");
+  };
+  const openFolder = () => dbOpenFolder().catch((e) => setMsg({ ok: false, text: String(e) }));
+  return (
+    <section className="glass panel">
+      <div className="panel-title cyan-text"><Activity size={20} />运行状态</div>
+      <div className="muted">{info ? <>{info.name} v{info.version} · 数据库：{info.db_ready ? "已就绪" : "未就绪"}</> : "…"}</div>
+      <div className="field"><span><Database size={16} />数据库位置{loc && <small className="muted">　{loc.custom ? "自定义位置" : "默认位置"}</small>}</span>
+        <code className="db-path">{loc?.path ?? info?.db_path ?? "…"}</code>
+      </div>
+      <div className="btn-row">
+        <button type="button" className="ghost-btn neon-cyan" disabled={busy} onClick={change}><FolderInput size={18} />{busy ? "迁移中…" : "更改位置"}</button>
+        <button type="button" className="ghost-btn" disabled={busy} onClick={openFolder}><FolderOpen size={18} />打开所在文件夹</button>
+        {loc?.custom && <button type="button" className="ghost-btn neon-pink" disabled={busy} onClick={() => setAskDefault(true)}><House size={18} />恢复默认位置</button>}
+      </div>
+      {msg && <div className={msg.ok ? "ok-line pre" : "error-line pre"}>{msg.text}</div>}
+      <div className="muted small">更改位置会先把数据完整复制到新文件夹并校验，确认无误后才切换；原文件不删除，改名为 .bak 留作备份。位置记录在应用数据目录的 config.json 里，备份文件中不包含路径。</div>
+      {conflict && (
+        <ChoiceDialog title={<><Database size={20} />目标位置已有数据库</>} busy={busy} onCancel={() => setConflict(null)}
+          onPick={(k) => doMove(conflict.dir, k as DbConflict)}
+          choices={[
+            { key: "overwrite", label: "用当前数据覆盖", tone: "danger" },
+            { key: "use_existing", label: "使用已有的那份数据", tone: "primary" },
+          ]}>
+          <p>这个文件夹里已经有一份数据库：<br /><code className="db-path">{conflict.target}</code></p>
+          <p>「使用已有的那份数据」：直接切换过去，当前数据改名为 .bak 备份。<br />「用当前数据覆盖」：把当前数据复制过去，那份旧文件会先改名为 .replaced.bak，不会直接删除。</p>
+        </ChoiceDialog>
+      )}
+      {askDefault && loc && (
+        <ChoiceDialog title={<><House size={20} />恢复默认位置</>} busy={busy} onCancel={() => setAskDefault(false)}
+          onPick={() => { setAskDefault(false); doMove(null, "ask"); }}
+          choices={[{ key: "ok", label: "迁回默认位置", tone: "primary" }]}>
+          <p>将把数据库从<br /><code className="db-path">{loc.path}</code><br />迁回默认位置<br /><code className="db-path">{loc.default_dir}</code></p>
+          <p>当前位置的文件会改名为 .bak 保留。</p>
+        </ChoiceDialog>
+      )}
+    </section>
+  );
+}
+
 export function SettingsPage({ onReset }: { onReset: (text?: string) => void }) {
   const [imp, setImp] = useState<{ path: string; info: BackupInfo } | null>(null);
   const [bmsg, setBmsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -393,12 +464,7 @@ export function SettingsPage({ onReset }: { onReset: (text?: string) => void }) 
       </section>
       <ReminderPanel />
       <WeatherPanel />
-      <section className="glass panel">
-        <div className="panel-title cyan-text"><Activity size={20} />运行状态</div>
-        <div className="muted">
-          {info ? <>{info.name} v{info.version} · 数据库：{info.db_ready ? "已就绪" : "未就绪"}<br />{info.db_path}</> : "…"}
-        </div>
-      </section>
+      <DbPanel info={info} onMoved={(t) => { getAppInfo().then(setInfo).catch(() => {}); onReset(t); }} />
       <section className="glass neon-cyan panel">
         <div className="panel-title cyan-text"><DatabaseBackup size={20} />备份与恢复</div>
         <div className="muted">把全部目标、计划版本、打卡、聊天、周复盘、提醒、自建模板和模型设置导出为一个 JSON 文件；不包含 API Key。</div>

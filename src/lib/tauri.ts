@@ -200,3 +200,16 @@ export const getUiTheme = () => invoke<UiTheme>("get_ui_theme");
 export const setUiTheme = (theme: UiTheme) => invoke<UiTheme>("set_ui_theme", { theme });
 export const setCloseAction = (action: CloseAction) => invoke<CloseAction>("set_close_action", { action });
 export const closeWindowChoice = (action: "tray" | "exit", remember: boolean) => invoke<void>("close_window_choice", { action, remember });
+
+// ---------- 数据库位置 ----------
+export type DbLocation = { path: string; dir: string; default_dir: string; custom: boolean; missing: boolean };
+export type DbMoveResult = { path: string; backup: string | null; replaced_backup: string | null; used_existing: boolean; note: string };
+export type DbConflict = "ask" | "use_existing" | "overwrite";
+export const DB_EXISTS = "DB_EXISTS:";
+export const DB_MISSING = "DB_MISSING:";
+export const dbLocation = () => invoke<DbLocation>("db_location");
+export const dbChangeLocation = (dir: string, conflict: DbConflict = "ask") => invoke<DbMoveResult>("db_change_location", { dir, conflict });
+export const dbRestoreDefault = (conflict: DbConflict = "ask") => invoke<DbMoveResult>("db_restore_default", { conflict });
+export const dbRelink = (dir: string) => invoke<DbLocation>("db_relink", { dir });
+export const dbUseDefault = () => invoke<DbLocation>("db_use_default");
+export const dbOpenFolder = () => invoke<void>("db_open_folder");
