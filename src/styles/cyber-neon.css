@@ -465,8 +465,9 @@ button:disabled { opacity: .55; cursor: wait; }
 .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: all .2s; }
 .switch:checked { background: rgba(var(--k-255-63-180), 0.25); border-color: var(--pink); box-shadow: 0 0 10px rgba(var(--k-255-63-180), 0.5); }
 .switch:checked::after { left: 24px; background: var(--pink); box-shadow: 0 0 8px var(--pink); }
-.switch-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
-.switch-row:last-of-type { border-bottom: none; }
+.switch-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; cursor: pointer; }
+/* 相邻设置行之间画分隔线（不论是 label 还是 div），卡片最后一行下面不画 */
+.switch-row + .switch-row { border-top: 1px solid var(--line); }
 .switch-row > span { flex: 1; display: flex; flex-direction: column; gap: 3px; font-size: 15px; }
 .switch-row > span small { font-size: 12px; color: var(--muted); }
 /* 设置行：图标与标题同行、垂直居中，说明缩进到图标右侧 */
