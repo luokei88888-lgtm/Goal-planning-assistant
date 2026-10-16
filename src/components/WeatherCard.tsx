@@ -9,6 +9,7 @@ export const WeatherIcon = ({ name, size = 20 }: { name: string; size?: number }
   const I = ICONS[name] ?? Cloud;
   return <I size={size} strokeWidth={1.7} />;
 };
+const cityFull = (w: Weather) => [w.city.name, w.city.admin !== w.city.name ? w.city.admin : "", w.city.country].filter(Boolean).join(" · ");
 const hm = (s: number) => { const d = new Date(s * 1000); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
 const t0 = (n: number) => `${Math.round(n)}°`;
 const aqiTone = (a: number) => (a <= 50 ? "good" : a <= 100 ? "ok" : a <= 150 ? "mid" : "bad");
@@ -104,6 +105,7 @@ export function WeatherCard() {
         <span className="wc-icon"><WeatherIcon name={c.icon} size={30} /></span>
         <span className="wc-temp">{t0(c.temp)}</span>
         <span className="wc-col">
+          <span className="wc-city" title={cityFull(w)}><MapPin size={11} /><em>{w.city.name}</em></span>
           <span className="wc-line"><b>{c.text}</b>{t0(w.today.max)}/{t0(w.today.min)}</span>
           <span className="wc-line sub"><Umbrella size={12} />{w.today.precip_max}%{w.aqi && <><Leaf size={12} /><i className={`aqi-${aqiTone(w.aqi.us_aqi)}`}>AQI {w.aqi.us_aqi}</i></>}</span>
         </span>

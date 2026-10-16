@@ -112,3 +112,5 @@ html:not([data-theme="neon"]) .theme-card.on { outline: 2px solid var(--t-accent
 html:not([data-theme="neon"]) .theme-name svg { color: var(--t-accent); }
 html:not([data-theme="neon"]) .db-path { background: var(--t-input-bg) !important; border: var(--t-input-border) !important; box-shadow: var(--t-input-shadow) !important; color: var(--text); }
 html:not([data-theme="neon"]) .close-desc { color: var(--text); }
+html:not([data-theme="neon"]) .wc-city svg { color: var(--t-accent); }
+html:not([data-theme="neon"]) .wc-city { color: var(--muted); }

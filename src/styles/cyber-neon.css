@@ -918,3 +918,9 @@ button.status-pill:hover { border-color: rgba(var(--k-0-240-255),.6); box-shadow
 .close-desc p { margin: 0 0 10px; }
 .db-modal { width: 540px; }
 .db-modal .close-foot { flex-wrap: wrap; }
+
+/* 天气卡：城市名 */
+.wc-city { display: flex; align-items: center; gap: 3px; max-width: 92px; min-width: 0; font-size: 11px; line-height: 1.2; color: var(--muted); }
+.wc-city svg { flex: none; color: var(--cyan); }
+.wc-city em { font-style: normal; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.weather-chip:has(.wc-city) { padding-top: 4px; padding-bottom: 4px; }
