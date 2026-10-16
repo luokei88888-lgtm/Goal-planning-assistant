@@ -1,0 +1,42 @@
+/* 弹出层：全部挂在 body 上（portal），不透明实底、最上层；带弹出动效，减少动画时由 motion.css 的全局规则压到瞬间完成 */
+@keyframes pop-in { from { opacity: 0; transform: translateY(-4px) scale(.97); } to { opacity: 1; transform: none; } }
+.pop-solid { z-index: 10000 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+  opacity: 1; animation: pop-in 160ms var(--e, cubic-bezier(.2,.8,.2,1)) both !important; transform-origin: 50% 0; }
+html[data-theme="neon"] .pop-solid, html:not([data-theme]) .pop-solid { background: rgb(var(--k-8-10-24)) !important; }
+html:not([data-theme="neon"]) .pop-solid { background: var(--t-modal-solid, #fff) !important; border: var(--t-panel-border) !important;
+  box-shadow: var(--t-modal-shadow) !important; color: var(--text) !important; }
+html:not([data-theme="neon"]) .mp-menu { border-radius: min(var(--t-radius, 12px), 16px) !important; }
+html:not([data-theme="neon"]) .mp-title { color: var(--t-accent) !important; }
+
+/* 时间选择器 */
+.tp-btn { display: inline-flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 96px; height: 34px; padding: 0 10px;
+  font-variant-numeric: tabular-nums; cursor: pointer; }
+.tp-btn .tp-ico { color: var(--cyan); flex: none; }
+.tp-btn.open { border-color: var(--pink) !important; }
+.tp-btn:disabled { cursor: not-allowed; }
+.time-item .tp-btn { width: 120px; }
+.tp-pop { width: 232px; box-sizing: border-box; padding: 10px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px; outline: none; overflow: hidden;
+  border: 1px solid rgba(var(--k-0-240-255), .6); box-shadow: 0 0 18px rgba(var(--k-0-240-255), .3), 0 10px 30px rgba(0,0,0,.6); color: var(--text); }
+.tp-input { width: 100%; box-sizing: border-box; text-align: center; font: inherit; font-size: 18px; font-weight: 700; letter-spacing: 2px; font-variant-numeric: tabular-nums;
+  padding: 6px; border-radius: 8px; border: 1px solid var(--line); background: rgba(var(--k-255-255-255), .04); color: var(--text); outline: none; }
+.tp-input:focus { border-color: var(--cyan); }
+.tp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; height: 176px; flex: 0 1 auto; min-height: 90px; }
+.tp-col { overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding: 3px; border-radius: 8px; scrollbar-width: thin; }
+.tp-col.act { box-shadow: inset 0 0 0 1px rgba(var(--k-0-240-255), .35); }
+.tp-cell { flex: none; height: 30px; border-radius: 6px; color: var(--text); font-variant-numeric: tabular-nums; font-size: 14px; text-align: center; }
+.tp-cell:hover { background: rgba(var(--k-0-240-255), .12); }
+.tp-cell.on { background: var(--cyan); color: rgb(var(--k-5-7-15)); font-weight: 800; box-shadow: 0 0 10px rgba(var(--k-0-240-255), .6); }
+.tp-presets { display: flex; gap: 6px; }
+.tp-chip { flex: 1; height: 28px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.tp-chip:hover { color: var(--cyan); border-color: var(--cyan); }
+.tp-chip.on { color: var(--pink); border-color: var(--pink); }
+
+html:not([data-theme="neon"]) .tp-pop { border-radius: min(var(--t-radius, 12px), 16px) !important; }
+html:not([data-theme="neon"]) .tp-btn .tp-ico { color: var(--t-accent); }
+html:not([data-theme="neon"]) .tp-btn.open { border-color: var(--t-accent) !important; }
+html:not([data-theme="neon"]) .tp-input { background: var(--t-input-bg) !important; border: var(--t-input-border) !important; box-shadow: var(--t-input-shadow) !important; }
+html:not([data-theme="neon"]) .tp-col.act { box-shadow: inset 0 0 0 1px var(--t-accent); }
+html:not([data-theme="neon"]) .tp-cell:hover { background: var(--t-btn-hover); }
+html:not([data-theme="neon"]) .tp-cell.on { background: var(--t-pri-bg) !important; color: var(--t-pri-color) !important; box-shadow: none; }
+html:not([data-theme="neon"]) .tp-chip { background: var(--t-btn-bg); border: var(--t-btn-border); border-radius: var(--t-btn-radius); box-shadow: var(--t-btn-shadow); color: var(--text); }
+html:not([data-theme="neon"]) .tp-chip.on { color: var(--t-accent); }

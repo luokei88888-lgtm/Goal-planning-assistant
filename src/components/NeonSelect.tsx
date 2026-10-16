@@ -49,15 +49,19 @@ export function NeonSelect<V extends string | number>({ value, options, onChange
       const t = e.target as Node;
       if (!btn.current?.contains(t) && !list.current?.contains(t)) close(false);
     };
-    const away = (e: Event) => { if (!list.current?.contains(e.target as Node)) close(false); };
+    // 列表挂在 body 上：页面滚动 / 窗口变化时跟着锚点重新定位（列表自身滚动不管），失焦关闭
+    let raf = 0;
+    const follow = (e: Event) => { if (list.current?.contains(e.target as Node)) return; cancelAnimationFrame(raf); raf = requestAnimationFrame(place); };
+    const away = () => close(false);
     window.addEventListener("mousedown", down, true);
-    window.addEventListener("scroll", away, true);
-    window.addEventListener("resize", away);
+    window.addEventListener("scroll", follow, true);
+    window.addEventListener("resize", follow);
     window.addEventListener("blur", away);
     return () => {
+      cancelAnimationFrame(raf);
       window.removeEventListener("mousedown", down, true);
-      window.removeEventListener("scroll", away, true);
-      window.removeEventListener("resize", away);
+      window.removeEventListener("scroll", follow, true);
+      window.removeEventListener("resize", follow);
       window.removeEventListener("blur", away);
     };
   }, [open]);
@@ -90,7 +94,7 @@ export function NeonSelect<V extends string | number>({ value, options, onChange
         <ChevronDown size={15} className="nsel-arrow" />
       </button>
       {open && createPortal(
-        <ul ref={list} className="nsel-list" role="listbox" style={pos} onMouseDown={(e) => e.preventDefault()}>
+        <ul ref={list} className="nsel-list pop-solid" role="listbox" style={pos} onMouseDown={(e) => e.preventDefault()}>
           {options.map((o, i) => (
             <li key={String(o.value)} data-i={i} role="option" aria-selected={o.value === value}
               className={`nsel-opt ${i === hi ? "hi" : ""} ${o.value === value ? "on" : ""}`}

@@ -13,6 +13,7 @@ import { DbMissingGuard } from "./components/DbDialogs";
 import "./styles/cyber-neon.css";
 import "./styles/themes/index.css";
 import "./styles/motion.css";
+import "./styles/popover.css";
 import { syncMotionFromDb, installVisibilityPause } from "./lib/motion";
 import { syncThemeFromDb } from "./lib/theme";
 

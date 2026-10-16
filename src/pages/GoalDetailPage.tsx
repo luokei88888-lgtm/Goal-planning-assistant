@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRoll, confetti, celebrateToast } from "../lib/motion";
+import { TimePicker } from "../components/TimePicker";
 import { createPortal } from "react-dom";
 import { Activity, RefreshCw, CalendarCheck, History, X, CircleCheck, CloudRain, Sparkles, Lock, ChevronLeft, Undo2, Archive, Coffee, ArchiveRestore, Bell, BellOff, Plus, Trash2, BookmarkPlus, Trophy } from "lucide-react";
 import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce } from "../lib/tauri";
@@ -32,7 +33,7 @@ function ReminderModal({ goalId, title, onClose, onSaved }: { goalId: number; ti
             {times.map((t, i) => (
               <div key={i} className="time-item">
                 <Bell size={16} />
-                <input type="time" value={t} onChange={(e) => setTimes(times.map((x, k) => (k === i ? e.target.value : x)))} />
+                <TimePicker value={t} disabled={!on} aria-label={`提醒时间 ${i + 1}`} onChange={(v) => setTimes(times.map((x, k) => (k === i ? v : x)))} />
                 {times.length > 1 && <button type="button" className="icon-plain" title="删除" onClick={() => setTimes(times.filter((_, k) => k !== i))}><Trash2 size={16} /></button>}
               </div>
             ))}

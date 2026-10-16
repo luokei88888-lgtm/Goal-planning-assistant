@@ -6,6 +6,8 @@ import { THEMES, currentTheme, saveTheme } from "../lib/theme";
 import type { UiTheme, DbLocation, DbMoveResult, DbConflict } from "../lib/tauri";
 import { dbLocation, dbChangeLocation, dbRestoreDefault, dbOpenFolder, DB_EXISTS, DB_MISSING } from "../lib/tauri";
 import { ChoiceDialog } from "../components/DbDialogs";
+import { TimePicker } from "../components/TimePicker";
+import { useAnchoredPos, useDismiss } from "../components/popover";
 import { saveReduceMotion, userReduceMotion, useReduced } from "../lib/motion";
 import { getAppInfo, getSettings, saveSettings, deleteApiKey, testConnection, factoryReset, exportBackup, inspectBackup, importBackup, type AppInfo, type SettingsView, type BackupInfo, getReminderSettings, saveReminderSettings, type ReminderSettings, weatherGetSettings, weatherSaveSettings, weatherSearchCity, type WeatherSettings, type City, fetchModels, getCloseAction, setCloseAction, type CloseAction } from "../lib/tauri";
 import { enable as enableAutostart, disable as disableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
@@ -89,8 +91,8 @@ function ReminderPanel() {
       </label>
       <label className="switch-row">
         <span><Moon size={15} /> 睡前汇总提醒<small>到点时列出今天还没打卡的目标（都打完了就不打扰）</small></span>
-        <input type="time" className="time-input" value={rs.summary_time} disabled={!rs.summary_enabled}
-          onChange={(e) => e.target.value && put({ ...rs, summary_time: e.target.value })} />
+        <TimePicker className="time-input" value={rs.summary_time} disabled={!rs.summary_enabled} aria-label="睡前汇总提醒时间"
+          onChange={(v) => put({ ...rs, summary_time: v })} />
         <input type="checkbox" className="switch" checked={rs.summary_enabled} onChange={(e) => put({ ...rs, summary_enabled: e.target.checked })} />
       </label>
       <div className="switch-row">
@@ -202,15 +204,12 @@ function ModelPicker({ value, onChange, presets, fetched, editable, loading, onF
   const [open, setOpen] = useState(false);
   const [hint, setHint] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+  const row = useRef<HTMLDivElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
   const list = fetched.length ? fetched : presets;
-  useEffect(() => {
-    if (!open) return;
-    const down = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
-    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
-    document.addEventListener("mousedown", down);
-    window.addEventListener("keydown", key);
-    return () => { document.removeEventListener("mousedown", down); window.removeEventListener("keydown", key); };
-  }, [open]);
+  // 候选列表挂到 body（portal），fixed 定位贴着输入行，滚动跟随、点外部 / Esc 关闭
+  const { pos } = useAnchoredPos(row, open, { estH: Math.min(list.length * 38 + 50, 320), matchWidth: true });
+  useDismiss(open, [box, menu], () => setOpen(false));
   useEffect(() => { if (fetched.length) setHint(false); }, [fetched]);
   const toggle = () => {
     if (!list.length) { setHint(true); setTimeout(() => setHint(false), 2500); return; }
@@ -218,7 +217,7 @@ function ModelPicker({ value, onChange, presets, fetched, editable, loading, onF
   };
   return (
     <div className="model-picker" ref={box}>
-      <div className="mp-row">
+      <div className="mp-row" ref={row}>
         <input value={value} readOnly={!editable} className={editable ? "" : "ro"}
           onChange={(e) => onChange(e.target.value)} onClick={() => { if (!editable) toggle(); }}
           placeholder={editable ? "手动输入模型名" : "点右侧获取模型列表后选择"} />
@@ -230,8 +229,8 @@ function ModelPicker({ value, onChange, presets, fetched, editable, loading, onF
         </button>
       </div>
       {hint && <div className="mp-hint">先点左边的下载按钮获取模型列表</div>}
-      {open && (
-        <div className="mp-menu glass">
+      {open && createPortal(
+        <div className="mp-menu pop-solid" ref={menu} style={pos} onMouseDown={(e) => { if ((e.target as HTMLElement).closest(".mp-item")) e.preventDefault(); }}>
           <div className="mp-title">模型列表{!fetched.length && <small>（尚未获取，以下为预设候选）</small>}</div>
           <div className="mp-items">
             {list.map((m) => (
@@ -240,7 +239,8 @@ function ModelPicker({ value, onChange, presets, fetched, editable, loading, onF
               </button>
             ))}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
