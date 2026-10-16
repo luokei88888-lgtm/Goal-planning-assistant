@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { KeyRound, Cpu, Link2, Activity, Save, PlugZap, Trash2, ShieldCheck, TriangleAlert, X, Download, Upload, DatabaseBackup, BellRing, Moon, Power, PanelBottomClose, Building2, ExternalLink, CloudSun, Search, MapPin, ChevronDown, Loader, Check, Palette, Database, FolderInput, FolderOpen, House } from "lucide-react";
+import { KeyRound, Cpu, Link2, Activity, Save, PlugZap, Trash2, ShieldCheck, TriangleAlert, X, Download, Upload, DatabaseBackup, BellRing, Moon, Power, PanelBottomClose, Building2, ExternalLink, CloudSun, Search, MapPin, ChevronDown, Loader, Check, Palette, Database, FolderInput, FolderOpen, House, Sparkles } from "lucide-react";
 import { NeonSelect } from "../components/NeonSelect";
 import { THEMES, currentTheme, saveTheme } from "../lib/theme";
 import type { UiTheme, DbLocation, DbMoveResult, DbConflict } from "../lib/tauri";
 import { dbLocation, dbChangeLocation, dbRestoreDefault, dbOpenFolder, DB_EXISTS, DB_MISSING } from "../lib/tauri";
+import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { ChoiceDialog } from "../components/DbDialogs";
 import { TimePicker } from "../components/TimePicker";
 import { useAnchoredPos, useDismiss } from "../components/popover";
@@ -35,7 +37,7 @@ function WeatherPanel() {
     <section className="glass neon-cyan panel">
       <div className="panel-title cyan-text"><CloudSun size={20} />天气</div>
       <label className="switch-row">
-        <span>在目标页显示天气<small>数据来自 Open-Meteo，免费免 Key；30 分钟内不重复请求，离线时显示上次结果</small></span>
+        <RowLabel icon={CloudSun} title="在目标页显示天气" desc={<>数据来自 Open-Meteo，免费免 Key；30 分钟内不重复请求，离线时显示上次结果</>} />
         <input type="checkbox" className="switch" checked={ws.enabled} onChange={(e) => put({ ...ws, enabled: e.target.checked })} />
       </label>
       <div className="muted"><MapPin size={14} /> 当前城市：<b className="cyan-text">{label(ws.city)}</b>（{ws.city.latitude.toFixed(2)}, {ws.city.longitude.toFixed(2)}）</div>
@@ -86,22 +88,22 @@ function ReminderPanel() {
     <section className="glass neon-pink-soft panel">
       <div className="panel-title pink-text"><BellRing size={20} />打卡提醒</div>
       <label className="switch-row">
-        <span>启用提醒<small>总开关；每个目标的提醒时间在目标详情页右上角「提醒」里设置</small></span>
+        <RowLabel icon={BellRing} title="启用提醒" desc={<>总开关；每个目标的提醒时间在目标详情页右上角「提醒」里设置</>} />
         <input type="checkbox" className="switch" checked={rs.enabled} onChange={(e) => put({ ...rs, enabled: e.target.checked })} />
       </label>
       <label className="switch-row">
-        <span><Moon size={15} /> 睡前汇总提醒<small>到点时列出今天还没打卡的目标（都打完了就不打扰）</small></span>
+        <RowLabel icon={Moon} title="睡前汇总提醒" desc={<>到点时列出今天还没打卡的目标（都打完了就不打扰）</>} />
         <TimePicker className="time-input" value={rs.summary_time} disabled={!rs.summary_enabled} aria-label="睡前汇总提醒时间"
           onChange={(v) => put({ ...rs, summary_time: v })} />
         <input type="checkbox" className="switch" checked={rs.summary_enabled} onChange={(e) => put({ ...rs, summary_enabled: e.target.checked })} />
       </label>
       <div className="switch-row">
-        <span><PanelBottomClose size={15} /> 关闭窗口时<small>点右上角关闭、任务栏关闭或 Alt+F4 时的行为。藏到托盘后，提醒到期会把窗口拉回来。</small></span>
+        <RowLabel icon={PanelBottomClose} title="关闭窗口时" desc={<>点右上角关闭、任务栏关闭或 Alt+F4 时的行为。藏到托盘后，提醒到期会把窗口拉回来。</>} />
         <NeonSelect<CloseAction> aria-label="关闭窗口时" className="close-nsel" value={ca ?? "ask"} disabled={ca === null} onChange={putClose}
           options={[{ value: "ask", label: "每次询问" }, { value: "tray", label: "隐藏到托盘" }, { value: "exit", label: "退出程序" }]} />
       </div>
       <label className="switch-row">
-        <span><Power size={15} /> 开机自动启动<small>开机后静默运行在托盘，按时提醒</small></span>
+        <RowLabel icon={Power} title="开机自动启动" desc={<>开机后静默运行在托盘，按时提醒</>} />
         <input type="checkbox" className="switch" checked={auto} onChange={(e) => toggleAuto(e.target.checked)} />
       </label>
       {msg && <div className={msg.ok ? "ok-line" : "error-line"}>{msg.text}</div>}
@@ -246,12 +248,23 @@ function ModelPicker({ value, onChange, presets, fetched, editable, loading, onF
   );
 }
 
+/** 设置行左侧：图标与标题同行、垂直居中，说明文字缩进到图标右侧与标题左对齐 */
+function RowLabel({ icon: Icon, title, desc }: { icon: LucideIcon; title: string; desc?: ReactNode }) {
+  return (
+    <span className="row-label">
+      <Icon size={16} className="row-ico" aria-hidden="true" />
+      <b className="row-title">{title}</b>
+      {desc && <small className="row-desc">{desc}</small>}
+    </span>
+  );
+}
+
 function MotionSwitch({ onErr }: { onErr: (e: string) => void }) {
   const eff = useReduced();
   const on = userReduceMotion();
   return (
     <label className="switch-row">
-      <span>减少动画<small>{!on && eff ? "系统已开启「减少动态效果」，已自动减少；" : ""}开启后动效几乎瞬间完成、不放彩带、背景静止</small></span>
+      <RowLabel icon={Sparkles} title="减少动画" desc={<>{!on && eff ? "系统已开启「减少动态效果」，已自动减少；" : ""}开启后动效几乎瞬间完成、不放彩带、背景静止</>} />
       <input type="checkbox" className="switch" checked={on} onChange={(e) => { saveReduceMotion(e.target.checked).catch((x) => onErr(String(x))); }} />
     </label>
   );
