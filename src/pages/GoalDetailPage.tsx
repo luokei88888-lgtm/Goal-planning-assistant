@@ -3,7 +3,7 @@ import { useRoll, confetti, celebrateToast } from "../lib/motion";
 import { TimePicker } from "../components/TimePicker";
 import { createPortal } from "react-dom";
 import { Activity, RefreshCw, CalendarCheck, History, X, CircleCheck, CloudRain, Sparkles, Lock, ChevronLeft, Undo2, Archive, Coffee, ArchiveRestore, Bell, BellOff, Plus, Trash2, BookmarkPlus, Trophy } from "lucide-react";
-import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce } from "../lib/tauri";
+import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce, todayStr } from "../lib/tauri";
 
 function ReminderModal({ goalId, title, onClose, onSaved }: { goalId: number; title: string; onClose: () => void; onSaved: (r: GoalReminders) => void }) {
   const [on, setOn] = useState(false);
@@ -116,7 +116,16 @@ function VersionsModal({ goalId, onClose }: { goalId: number; onClose: () => voi
   );
 }
 
-const unlockText = (date: string, idx: number) => (idx === 0 ? "明日解锁" : idx === 1 ? "后日解锁" : `${md(date)}解锁`);
+/** 按日历差算相对解锁文案：明天→明日，后天→后日，其余用绝对日期。勿用列表下标（计划若从后天起，第1项不是「明日」）。 */
+const unlockText = (date: string) => {
+  const today = todayStr();
+  const [y, m, d] = today.split("-").map(Number);
+  const [Y, M, D] = date.split("-").map(Number);
+  const days = Math.round((Date.UTC(Y, M - 1, D) - Date.UTC(y, m - 1, d)) / 86400000);
+  if (days === 1) return "明日解锁";
+  if (days === 2) return "后日解锁";
+  return `${md(date)}解锁`;
+};
 
 export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
   const [showVers, setShowVers] = useState(false);
@@ -290,7 +299,7 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
             <Lock size={18} />
             <span className="day-tag">第{f.day_index}天</span>
             <span className="day-task">{f.title}</span>
-            <span className="day-meta"><Lock size={16} />{unlockText(f.date, i)}</span>
+            <span className="day-meta"><Lock size={16} />{unlockText(f.date)}</span>
           </div>
         ))}
       </div>
