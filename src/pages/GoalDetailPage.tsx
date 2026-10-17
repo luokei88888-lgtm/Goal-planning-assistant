@@ -164,7 +164,8 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
   };
 
   // 动效：完成数 / 百分比滚动、勾选弹跳、里程碑庆祝
-  const rawPct = d && d.total ? Math.round((d.done / d.total) * 100) : 0;
+  const dueTotal = d ? Math.max(0, d.total - (d.rest ?? 0)) : 0;
+  const rawPct = dueTotal ? Math.round((d!.done / dueTotal) * 100) : 0;
   const doneN = useRoll(d ? d.done : -1, 500);
   const pctN = useRoll(d ? rawPct : -1, 500);
   const [pop, setPop] = useState(0);
@@ -176,7 +177,8 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
     try {
       const [x, s] = await Promise.all([getGoalDetail(goalId), getStats(goalId)]);
       const keys: [string, string][] = [];
-      if (x.total > 0 && x.done >= x.total) keys.push(["all_done", "🏆 目标全部完成，了不起！"]);
+      const due = Math.max(0, x.total - (x.rest ?? 0));
+      if (due > 0 && x.done >= due) keys.push(["all_done", "🏆 目标全部完成，了不起！"]);
       const st = s.current_streak;
       if ([7, 14, 21, 30].includes(st)) keys.push([`streak${st}`, `🎉 连续打卡 ${st} 天，太棒了！`]);
       for (const [k, text] of keys) {
@@ -269,7 +271,7 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
           </>
         )}
         <div className="progress-box">
-          <div className="progress-row"><span>总进度 · 已完成 {doneN} / {d.total} 天</span><span>{pctN}%</span></div>
+          <div className="progress-row"><span>总进度 · 已完成 {doneN} / {dueTotal || d.total} 天</span><span>{pctN}%</span></div>
           <div className="bar big"><span className={`fill-cyan m-fill ${barInit.current ? "m-init" : ""}`} style={{ ["--p" as string]: pct / 100 }} /></div>
           <div className="progress-foot">
             <span className="pink-text"><CloudRain size={20} />漏打 {d.missed.length}</span>

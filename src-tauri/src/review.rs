@@ -122,6 +122,16 @@ pub fn week_view(conn: &Connection, goal_id: i64, week_start: Option<&str>, toda
         let d = days.iter().find(|x| x.date == date);
         let state = match d {
             None => "none",
+            // 休息日与统计一致：不计入 due/漏打；过去的休息日视为已「完成」（无需打卡）
+            Some(x) if x.is_rest => {
+                if date == today {
+                    "today"
+                } else if date.as_str() > today {
+                    "future"
+                } else {
+                    "done"
+                }
+            }
             Some(x) => {
                 if date.as_str() <= today {
                     due += 1;
@@ -227,7 +237,7 @@ mod tests {
     fn week_stats_and_reviews() {
         let mut conn = Connection::open_in_memory().unwrap();
         crate::db::migrate(&conn).unwrap();
-        // 2026-10-14 是周三；示例从 10-07 开始，第 4 天(10-10)漏打
+        // 2026-10-14 是周三；示例从 10-07 开始，第 5 天(10-11)漏打（休息日不算漏打）
         let id = import_sample(&mut conn, "2026-10-14", 0).unwrap();
         let w = week_view(&conn, id, None, "2026-10-14").unwrap();
         assert_eq!((w.week_start.as_str(), w.week_end.as_str(), w.is_current), ("2026-10-12", "2026-10-18", true));
@@ -241,17 +251,18 @@ mod tests {
         let w = week_view(&conn, id, None, "2026-10-14").unwrap();
         assert_eq!((w.done, w.due, w.missed), (3, 3, 0));
 
-        // 上一周：10-05/06 没有计划，10-07..10-11 五天，漏 1
+        // 上一周：10-05/06 没有计划；10-07..10-11 中休息日不计 due，漏打为第5天(周日)
         let p = week_view(&conn, id, Some("2026-10-08"), "2026-10-14").unwrap();
         assert_eq!(p.week_start, "2026-10-05");
-        assert_eq!((p.done, p.due, p.missed), (4, 5, 1));
+        assert_eq!((p.done, p.due, p.missed), (3, 4, 1));
         assert_eq!(p.cells[0].state, "none");
-        assert_eq!(p.cells[5].state, "missed");
+        assert_eq!(p.cells[5].state, "done", "周六休息日不算漏打");
+        assert_eq!(p.cells[6].state, "missed", "周日第5天漏打");
 
         // 保存 / 覆盖 / 点评 / 历史
         let t = ReviewText { went_well: "坚持了".into(), hard: "周六加班".into(), next_plan: "".into() };
         let r = save_review(&conn, id, "2026-10-05", &t, "2026-10-14", 2).unwrap();
-        assert_eq!((r.done, r.due, r.missed), (4, 5, 1));
+        assert_eq!((r.done, r.due, r.missed), (3, 4, 1));
         save_review(&conn, id, "2026-10-12", &ReviewText { went_well: "a".into(), ..Default::default() }, "2026-10-14", 3).unwrap();
         save_review(&conn, id, "2026-10-14", &ReviewText { went_well: "b".into(), ..Default::default() }, "2026-10-14", 4).unwrap();
         let r = set_ai_comment(&conn, id, "2026-10-12", "不错", 5).unwrap();

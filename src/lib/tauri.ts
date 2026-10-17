@@ -15,7 +15,7 @@ export type DayItem = {
 export type GoalDetail = {
   id: number; title: string; icon: string; status: string; version_no: number | null;
   version_status: string | null; start_date: string | null; end_date: string | null;
-  readonly: boolean; total: number; done: number; today: DayItem | null;
+  readonly: boolean; total: number; done: number; rest: number; today: DayItem | null;
   missed: DayItem[]; upcoming: DayItem[];
 };
 

@@ -59,6 +59,8 @@ pub struct GoalDetail {
     pub readonly: bool,
     pub total: i64,
     pub done: i64,
+    /// 休息日天数（完成率分母 = total - rest；漏打不含休息日）
+    pub rest: i64,
     pub today: Option<DayItem>,
     pub missed: Vec<DayItem>,
     pub upcoming: Vec<DayItem>,
@@ -214,6 +216,7 @@ pub fn get_goal_detail(conn: &Connection, goal_id: i64, today: &str, upcoming_li
         end_date: None,
         total: 0,
         done: 0,
+        rest: 0,
         today: None,
         missed: vec![],
         upcoming: vec![],
@@ -227,8 +230,10 @@ pub fn get_goal_detail(conn: &Connection, goal_id: i64, today: &str, upcoming_li
         d.end_date = Some(v.end);
         d.total = days.len() as i64;
         d.done = days.iter().filter(|x| x.checked).count() as i64;
+        d.rest = days.iter().filter(|x| x.is_rest).count() as i64;
         d.today = days.iter().find(|x| x.date == today).cloned();
-        d.missed = days.iter().filter(|x| x.date.as_str() < today && !x.checked).cloned().collect();
+        // 休息日不计漏打（与统计/提醒一致：休息日不要求打卡）
+        d.missed = days.iter().filter(|x| x.date.as_str() < today && !x.checked && !x.is_rest).cloned().collect();
         d.upcoming = days.iter().filter(|x| x.date.as_str() > today).take(upcoming_limit).cloned().collect();
     }
     Ok(d)
@@ -414,7 +419,8 @@ pub fn import_sample(conn: &mut Connection, today: &str, now: i64) -> R<i64> {
     };
     let goal_id = create_goal_with_plan(conn, &g, now)?;
     let detail = get_goal_detail(conn, goal_id, today, 0)?;
-    for d in detail.missed.iter().filter(|d| d.day_index != 4) {
+    // 故意留下第 5 天（有氧慢跑，非休息）作为漏打；休息日不需要打卡，不应出现在漏打里
+    for d in detail.missed.iter().filter(|d| d.day_index != 5) {
         insert_checkin(conn, d.id, &d.date, "on_time", now)?;
     }
     Ok(goal_id)
@@ -460,13 +466,39 @@ mod tests {
         let (conn, id) = setup();
         let d = get_goal_detail(&conn, id, "2026-10-14", 5).unwrap();
         assert_eq!(d.total, 30);
-        assert_eq!(d.done, 6);
+        assert_eq!(d.done, 5);
         assert_eq!(d.missed.len(), 1);
-        assert_eq!(d.missed[0].day_index, 4);
+        assert_eq!(d.missed[0].day_index, 5);
+        assert!(!d.missed[0].is_rest, "漏打不应包含休息日");
         assert_eq!(d.today.as_ref().unwrap().day_index, 8);
         assert_eq!(d.upcoming.len(), 5);
         assert_eq!(d.upcoming[0].day_index, 9);
     }
+
+    #[test]
+    fn rest_days_are_not_listed_as_missed() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&conn).unwrap();
+        let days = vec![
+            NewDay { title: "干活".into(), detail: String::new(), tasks: vec![], is_rest: false },
+            NewDay { title: "休息".into(), detail: String::new(), tasks: vec![], is_rest: true },
+            NewDay { title: "干活2".into(), detail: String::new(), tasks: vec![], is_rest: false },
+            NewDay { title: "今天".into(), detail: String::new(), tasks: vec![], is_rest: false },
+        ];
+        let g = NewGoal {
+            title: "测漏打".into(), description: String::new(), icon: None, source: Some("manual".into()),
+            summary: String::new(), start_date: "2026-10-14".into(), days,
+        };
+        let id = create_goal_with_plan(&mut conn, &g, 1).unwrap();
+        let d = get_goal_detail(&conn, id, "2026-10-17", 5).unwrap();
+        assert_eq!(d.rest, 1);
+        assert_eq!(d.total, 4);
+        // 10-14、10-15、10-16 已过；休息日 10-15 不算漏打 → 漏打应为 10-14 与 10-16
+        assert_eq!(d.missed.len(), 2);
+        assert!(d.missed.iter().all(|x| !x.is_rest));
+        assert_eq!(d.missed.iter().map(|x| x.day_index).collect::<Vec<_>>(), vec![1, 3]);
+    }
+
 
     #[test]
     fn check_in_rules() {
@@ -483,7 +515,7 @@ mod tests {
 
         make_up_check_in(&conn, missed, "2026-10-14", 1).unwrap();
         let d = get_goal_detail(&conn, id, "2026-10-14", 5).unwrap();
-        assert_eq!(d.done, 8);
+        assert_eq!(d.done, 7);
         assert!(d.missed.is_empty());
         let s = &list_goals(&conn, "2026-10-14").unwrap()[0];
         assert!(s.today_done);
@@ -505,17 +537,17 @@ mod tests {
         assert!(check_in(&conn, today, "2026-10-14", 3).is_err());
         let d = get_goal_detail(&conn, id, "2026-10-14", 0).unwrap();
         assert!(d.readonly);
-        assert_eq!(d.done, 6);
+        assert_eq!(d.done, 5);
         assert!(list_goals(&conn, "2026-10-14").unwrap().is_empty());
         let a = list_goals_by(&conn, "2026-10-14", true).unwrap();
-        assert_eq!((a.len(), a[0].done, a[0].status.as_str()), (1, 6, "archived"));
+        assert_eq!((a.len(), a[0].done, a[0].status.as_str()), (1, 5, "archived"));
 
         restore_goal(&mut conn, id, 4).unwrap();
         assert!(restore_goal(&mut conn, id, 4).is_err());
         assert!(list_goals_by(&conn, "2026-10-14", true).unwrap().is_empty());
         let d = get_goal_detail(&conn, id, "2026-10-14", 0).unwrap();
         assert!(!d.readonly);
-        assert_eq!((d.version_no, d.done), (Some(1), 6));
+        assert_eq!((d.version_no, d.done), (Some(1), 5));
         check_in(&conn, today, "2026-10-14", 5).unwrap();
     }
 
@@ -543,6 +575,6 @@ mod tests {
 
         let id2 = import_sample(&mut conn, "2026-10-14", 2).unwrap();
         assert_eq!(id2, 1, "自增应已重置");
-        assert_eq!(get_goal_detail(&conn, id2, "2026-10-14", 0).unwrap().done, 6);
+        assert_eq!(get_goal_detail(&conn, id2, "2026-10-14", 0).unwrap().done, 5);
     }
 }

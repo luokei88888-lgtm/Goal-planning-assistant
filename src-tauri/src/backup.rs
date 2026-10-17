@@ -255,7 +255,7 @@ mod tests {
         let dump2 = export(&dst, "2026-10-15T09:00:00+08:00", "0.1.0").unwrap();
         assert_eq!(dump1, dump2, "导出→导入→再导出应完全一致");
         let d = get_goal_detail(&dst, 1, "2026-10-14", 0).unwrap();
-        assert_eq!((d.version_no, d.done), (Some(2), 7));
+        assert_eq!((d.version_no, d.done), (Some(2), 6));
         // 自增继续正常
         let id2 = import_sample(&mut dst, "2026-10-14", 9).unwrap();
         assert_eq!(id2, 2);
@@ -279,7 +279,7 @@ mod tests {
         let info = import(&mut dst, &v).unwrap();
         assert_eq!((info.backup_version, info.goal_reminders, info.goals), (1, 0, 1));
         assert!(crate::reminder::goal_reminders(&dst, 1).unwrap().times.is_empty(), "旧备份导入后提醒为空");
-        assert_eq!(get_goal_detail(&dst, 1, "2026-10-14", 0).unwrap().done, 7);
+        assert_eq!(get_goal_detail(&dst, 1, "2026-10-14", 0).unwrap().done, 6);
         // v1 备份里不该出现新表；v1 但结构版本不对也拒绝
         let mut bad = v.clone();
         bad["tables"]["goal_reminders"] = json!([]);

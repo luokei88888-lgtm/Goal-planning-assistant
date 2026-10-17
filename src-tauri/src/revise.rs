@@ -282,9 +282,9 @@ mod tests {
         let d = get_goal_detail(&conn, id, "2026-10-14", 5).unwrap();
         assert_eq!(d.version_no, Some(2));
         assert_eq!(d.total, 10);
-        assert_eq!(d.done, 7, "过去 6 天 + 今天的打卡都保留");
+        assert_eq!(d.done, 6, "过去 5 天 + 今天的打卡都保留");
         assert_eq!(d.missed.len(), 1);
-        assert_eq!(d.missed[0].day_index, 4);
+        assert_eq!(d.missed[0].day_index, 5);
         let t = d.today.unwrap();
         assert_eq!((t.day_index, t.title.as_str(), t.checked), (8, "散步30分钟", true));
         assert_eq!(d.end_date.as_deref(), Some("2026-10-16"));
@@ -295,8 +295,8 @@ mod tests {
         // 旧版归档、只读、打卡仍在
         let vs = list_versions(&conn, id).unwrap();
         assert_eq!(vs.len(), 2);
-        assert_eq!((vs[0].version_no, vs[0].status.as_str(), vs[0].done), (2, "active", 7));
-        assert_eq!((vs[1].version_no, vs[1].status.as_str(), vs[1].done), (1, "archived", 7));
+        assert_eq!((vs[0].version_no, vs[0].status.as_str(), vs[0].done), (2, "active", 6));
+        assert_eq!((vs[1].version_no, vs[1].status.as_str(), vs[1].done), (1, "archived", 6));
         assert!(undo_check_in(&conn, old_today).is_err());
         // 新版可以继续打卡/取消
         undo_check_in(&conn, t.id).unwrap();
@@ -304,7 +304,7 @@ mod tests {
         // 再改一次 → v3
         assert_eq!(revise_plan(&mut conn, id, &ng.days[..1], "", "chat", "2026-10-15", 4).unwrap(), 3);
         let d = get_goal_detail(&conn, id, "2026-10-15", 0).unwrap();
-        assert_eq!((d.total, d.done), (9, 7));
+        assert_eq!((d.total, d.done), (9, 6));
         assert!(plan_context(&conn, id, "2026-10-15").unwrap().contains("v3"));
     }
 
