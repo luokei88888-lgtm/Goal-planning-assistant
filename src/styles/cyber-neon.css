@@ -198,6 +198,7 @@ input { font: inherit; color: var(--text); }
 .progress-box { margin: 18px -12px 0; padding: 12px 20px 0; border: 1px solid var(--line); border-bottom: none;
   border-radius: 12px 12px 0 0; background: rgba(var(--k-6-8-20), 0.5); text-align: left; }
 .progress-row { display: flex; justify-content: space-between; color: var(--cyan); font-size: 15px; margin-bottom: 10px; }
+.progress-cycle { font-size: 13px; font-weight: 400; }
 .progress-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 16px; }
 .progress-foot span { display: inline-flex; align-items: center; gap: 8px; }
 .progress-foot .divider { width: 1px; height: 22px; background: var(--line); }

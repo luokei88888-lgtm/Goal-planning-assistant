@@ -238,7 +238,7 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
             <div className="today-date"><span className="done-badge big"><Trophy size={15} />已完成</span><span>{d.start_date && d.end_date ? `${md(d.start_date)} – ${md(d.end_date)}` : ""}</span></div>
             <h2 className="today-task"><Trophy size={34} className="green-text" /> 计划已全部结束</h2>
             <div className="done-kpis">
-              <div><b>{sum ? `${sum.done}/${sum.due}` : `${d.done}/${d.total}`}</b><span>完成天数</span></div>
+              <div><b>{sum ? `${sum.done}/${sum.due}` : `${d.done}/${dueTotal}`}</b><span>行动日</span></div>
               <div><b className="green-text">{sum?.rate != null ? `${Math.round(sum.rate * 100)}%` : `${pct}%`}</b><span>完成率</span></div>
               <div><b>{sum ? sum.longest : "–"}<small>天</small></b><span>最长连续</span></div>
             </div>
@@ -271,7 +271,13 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
           </>
         )}
         <div className="progress-box">
-          <div className="progress-row"><span>总进度 · 已完成 {doneN} / {dueTotal || d.total} 天</span><span>{pctN}%</span></div>
+          <div className="progress-row">
+            <span>
+              总进度 · 已完成 {doneN} / {dueTotal} 个行动日
+              <span className="muted progress-cycle"> · 周期共 {d.total} 天{(d.rest ?? 0) > 0 ? `（含休息 ${d.rest} 天）` : ""}</span>
+            </span>
+            <span>{pctN}%</span>
+          </div>
           <div className="bar big"><span className={`fill-cyan m-fill ${barInit.current ? "m-init" : ""}`} style={{ ["--p" as string]: pct / 100 }} /></div>
           <div className="progress-foot">
             <span className="pink-text"><CloudRain size={20} />漏打 {d.missed.length}</span>

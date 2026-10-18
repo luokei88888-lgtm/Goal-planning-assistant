@@ -54,7 +54,7 @@ export function GoalsPage({ onOpenGoal, onTemplates }: { onOpenGoal: (id: number
           <div className="goal-sub">
             {arch && <span className="tag cyan">已归档 · 只读</span>}
             {done && <span className="done-badge"><Trophy size={13} />已完成</span>}
-            完成 <b className={`${tone}-text`}>{g.done}/{due || g.total}</b>{done && <> · 完成率 <b className="green-text">{rate}%</b></>}
+            行动日 <b className={`${tone}-text`}>{g.done}/{due}</b>{g.rest > 0 ? ` · 休息 ${g.rest}` : ""}{done && <> · 完成率 <b className="green-text">{rate}%</b></>}
           </div>
         </div>
         <div className="goal-right">
@@ -69,7 +69,7 @@ export function GoalsPage({ onOpenGoal, onTemplates }: { onOpenGoal: (id: number
               {g.today_done ? <CircleCheck size={20} /> : <Circle size={20} />}
             </span>
           )}
-          <div className="bar"><span className={done ? "fill-green" : `fill-${tone}`} style={{ width: `${done ? rate : g.total ? Math.round((g.done / g.total) * 100) : 0}%` }} /></div>
+          <div className="bar"><span className={done ? "fill-green" : `fill-${tone}`} style={{ width: `${rate}%` }} /></div>
         </div>
       </div>
     );

@@ -178,7 +178,7 @@ export function StatsPage({ onOpenGoal }: { onOpenGoal: (id: number) => void }) 
                   <span className="rank-title">{r.title}{r.status === "completed" && <em className="done-badge">已完成</em>}</span>
                   <span className="rank-bar"><i style={{ width: `${Math.round((r.rate ?? 0) * 100)}%` }} /></span>
                   <span className="rank-val">{pct(r.rate)}</span>
-                  <span className="rank-sub">{r.done}/{r.due} · 连续 {r.streak} 天</span>
+                  <span className="rank-sub">{r.done}/{r.due} 行动日 · 连续 {r.streak} 天</span>
                 </button>
               ))}
             </div>
