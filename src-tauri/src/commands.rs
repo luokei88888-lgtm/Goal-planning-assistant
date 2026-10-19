@@ -609,16 +609,27 @@ pub fn reminder_tick(app: &AppHandle) {
     let local = chrono::Local::now().naive_local();
     let date = local.date().format("%Y-%m-%d").to_string();
     let Ok(list) = reminder::due_reminders(&conn, local) else { return };
+    let mut raised = false;
     for d in list {
         if notify(app, &d.title, &d.body).is_ok() {
             let _ = reminder::mark_sent(&conn, &d.key, &date, now());
-            // 窗口不在前台时，记下目标：用户点通知/托盘打开窗口后跳到该目标
-            let hidden = app
-                .get_webview_window("main")
+            // 窗口不在前台时记下目标：打开/获焦后跳到该目标
+            let win = app.get_webview_window("main");
+            let hidden = win
+                .as_ref()
                 .map(|w| !w.is_visible().unwrap_or(false) || w.is_minimized().unwrap_or(false) || !w.is_focused().unwrap_or(false))
+                .unwrap_or(true);
+            let in_tray_or_min = win
+                .as_ref()
+                .map(|w| !w.is_visible().unwrap_or(false) || w.is_minimized().unwrap_or(false))
                 .unwrap_or(true);
             if hidden {
                 *app.state::<PendingOpen>().0.lock().unwrap() = Some((d.goal_id, std::time::Instant::now()));
+            }
+            // 托盘/最小化时拉起窗口（与设置页文案一致）；同一轮只拉一次
+            if in_tray_or_min && !raised {
+                show_main(app);
+                raised = true;
             }
         }
     }

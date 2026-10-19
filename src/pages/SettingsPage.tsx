@@ -106,7 +106,7 @@ function ReminderPanel() {
         <input type="checkbox" className="switch" checked={rs.summary_enabled} onChange={(e) => put({ ...rs, summary_enabled: e.target.checked })} />
       </label>
       <div className="switch-row">
-        <RowLabel icon={PanelBottomClose} title="关闭窗口时" desc={<>点右上角关闭、任务栏关闭或 Alt+F4 时的行为。藏到托盘后，提醒到期会把窗口拉回来。</>} />
+        <RowLabel icon={PanelBottomClose} title="关闭窗口时" desc={<>点右上角关闭、任务栏关闭或 Alt+F4 时的行为。藏到托盘后仍会按时弹系统通知并打开窗口。</>} />
         <NeonSelect<CloseAction> aria-label="关闭窗口时" className="close-nsel" value={ca ?? "ask"} disabled={ca === null} onChange={putClose}
           options={[{ value: "ask", label: "每次询问" }, { value: "tray", label: "隐藏到托盘" }, { value: "exit", label: "退出程序" }]} />
       </div>
