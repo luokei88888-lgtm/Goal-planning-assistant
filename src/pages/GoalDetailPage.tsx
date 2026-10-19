@@ -62,21 +62,22 @@ function DayNoteEditor({
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(note);
   const [busy, setBusy] = useState(false);
-  const [flash, setFlash] = useState(false);
+  const [flash, setFlash] = useState<"saved" | "deleted" | null>(null);
   const skipBlur = useRef(false);
   const flashTimer = useRef<number | null>(null);
   useEffect(() => { setText(note); setEditing(false); }, [note, dayId]);
   useEffect(() => () => { if (flashTimer.current) window.clearTimeout(flashTimer.current); }, []);
-  const showSaved = () => {
-    setFlash(true);
+  const showFlash = (kind: "saved" | "deleted") => {
+    setFlash(kind);
     if (flashTimer.current) window.clearTimeout(flashTimer.current);
-    flashTimer.current = window.setTimeout(() => setFlash(false), 1600);
+    flashTimer.current = window.setTimeout(() => setFlash(null), 1600);
   };
+  const flashLabel = flash === "deleted" ? "已删除" : flash === "saved" ? "已保存" : null;
   const save = async (closeAfter = true) => {
     if (readonly || busy) return;
     if (text.trim() === note.trim()) {
       if (closeAfter) setEditing(false);
-      showSaved();
+      if (text.trim()) showFlash("saved");
       return;
     }
     setBusy(true);
@@ -85,7 +86,20 @@ function DayNoteEditor({
       setText(saved);
       onSaved();
       if (closeAfter) setEditing(false);
-      showSaved();
+      showFlash(saved.trim() ? "saved" : "deleted");
+    } catch (e) { onError(String(e)); }
+    finally { setBusy(false); }
+  };
+  const remove = async () => {
+    if (readonly || busy || !note.trim()) return;
+    if (!confirm("确定删除这条备注？")) return;
+    setBusy(true);
+    try {
+      await saveDayNote(dayId, "");
+      setText("");
+      setEditing(false);
+      onSaved();
+      showFlash("deleted");
     } catch (e) { onError(String(e)); }
     finally { setBusy(false); }
   };
@@ -93,12 +107,12 @@ function DayNoteEditor({
     skipBlur.current = true;
     setText(note);
     setEditing(false);
-    setFlash(false);
+    setFlash(null);
   };
   const startEdit = () => {
     setText(note);
     setEditing(true);
-    setFlash(false);
+    setFlash(null);
   };
 
   if (readonly) {
@@ -116,7 +130,7 @@ function DayNoteEditor({
       return (
         <div className={`day-note-idle ${compact ? "compact" : ""}`}>
           <button type="button" className="day-note-write" onClick={startEdit}>＋ 写备注</button>
-          {flash && <span className="day-note-flash">已保存</span>}
+          {flashLabel && <span className="day-note-flash">{flashLabel}</span>}
         </div>
       );
     }
@@ -125,7 +139,8 @@ function DayNoteEditor({
         <span className="day-note-label">备注</span>
         <span className="day-note-body" title={note}>{note}</span>
         <button type="button" className="day-note-edit" onClick={startEdit}>编辑</button>
-        {flash && <span className="day-note-flash">已保存</span>}
+        <button type="button" className="day-note-del" disabled={busy} onClick={() => void remove()}>删除</button>
+        {flashLabel && <span className="day-note-flash">{flashLabel}</span>}
       </div>
     );
   }
@@ -139,7 +154,7 @@ function DayNoteEditor({
         autoFocus
         placeholder="今天没完全按计划？写一句说明，方便以后回顾"
         value={text}
-        onChange={(e) => { setText(e.target.value); setFlash(false); }}
+        onChange={(e) => { setText(e.target.value); setFlash(null); }}
         onBlur={() => {
           if (skipBlur.current) { skipBlur.current = false; return; }
           void save(true);
@@ -148,6 +163,17 @@ function DayNoteEditor({
       <div className="day-note-actions">
         <span className="day-note-count">{text.length}/500</span>
         <div className="day-note-btns">
+          {note.trim() && (
+            <button
+              type="button"
+              className="day-note-del"
+              disabled={busy}
+              onMouseDown={() => { skipBlur.current = true; }}
+              onClick={() => void remove()}
+            >
+              删除
+            </button>
+          )}
           <button
             type="button"
             className="day-note-cancel"
@@ -159,12 +185,12 @@ function DayNoteEditor({
           </button>
           <button
             type="button"
-            className={`day-note-save ${flash ? "on" : ""}`}
+            className={`day-note-save ${flash === "saved" ? "on" : ""}`}
             disabled={busy}
             onMouseDown={() => { skipBlur.current = true; }}
             onClick={() => void save(true)}
           >
-            {busy ? "保存中…" : flash ? "已保存" : "保存"}
+            {busy ? "保存中…" : flash === "saved" ? "已保存" : "保存"}
           </button>
         </div>
       </div>
