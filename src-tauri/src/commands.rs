@@ -877,3 +877,14 @@ pub fn db_open_folder(app: AppHandle) -> Result<(), String> {
     };
     r.map(|_| ()).map_err(|e| format!("打开文件夹失败：{e}"))
 }
+
+// ---------------- 开机自启 ----------------
+#[tauri::command]
+pub fn get_autostart() -> Result<crate::autostart_cmd::AutostartStatus, String> {
+    crate::autostart_cmd::get_status()
+}
+
+#[tauri::command]
+pub fn set_autostart(enabled: bool) -> Result<crate::autostart_cmd::AutostartStatus, String> {
+    crate::autostart_cmd::set_enabled(enabled)
+}

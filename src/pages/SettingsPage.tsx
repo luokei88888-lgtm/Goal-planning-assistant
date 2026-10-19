@@ -11,8 +11,7 @@ import { ChoiceDialog } from "../components/DbDialogs";
 import { TimePicker } from "../components/TimePicker";
 import { useAnchoredPos, useDismiss } from "../components/popover";
 import { saveReduceMotion, userReduceMotion, useReduced } from "../lib/motion";
-import { getAppInfo, getSettings, saveSettings, deleteApiKey, testConnection, factoryReset, exportBackup, inspectBackup, importBackup, type AppInfo, type SettingsView, type BackupInfo, getReminderSettings, saveReminderSettings, type ReminderSettings, weatherGetSettings, weatherSaveSettings, weatherSearchCity, type WeatherSettings, type City, fetchModels, getCloseAction, setCloseAction, type CloseAction } from "../lib/tauri";
-import { enable as enableAutostart, disable as disableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
+import { getAppInfo, getSettings, saveSettings, deleteApiKey, testConnection, factoryReset, exportBackup, inspectBackup, importBackup, type AppInfo, type SettingsView, type BackupInfo, getReminderSettings, saveReminderSettings, type ReminderSettings, weatherGetSettings, weatherSaveSettings, weatherSearchCity, type WeatherSettings, type City, fetchModels, getCloseAction, setCloseAction, type CloseAction, getAutostart, setAutostart, type AutostartStatus } from "../lib/tauri";
 
 function WeatherPanel() {
   const [ws, setWs] = useState<WeatherSettings | null>(null);
@@ -63,10 +62,13 @@ function WeatherPanel() {
 function ReminderPanel() {
   const [rs, setRs] = useState<ReminderSettings | null>(null);
   const [auto, setAuto] = useState(false);
+  const [autoInfo, setAutoInfo] = useState<AutostartStatus | null>(null);
+  const [autoBusy, setAutoBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => {
     getReminderSettings().then(setRs).catch((e) => setMsg({ ok: false, text: String(e) }));
-    autostartEnabled().then(setAuto).catch(() => {});
+    getAutostart().then((s) => { setAuto(s.enabled); setAutoInfo(s); })
+      .catch((e) => setMsg({ ok: false, text: `读取开机自启状态失败：${String(e)}` }));
   }, []);
   const [ca, setCa] = useState<CloseAction | null>(null);
   useEffect(() => { getCloseAction().then(setCa).catch(() => setCa("ask")); }, []);
@@ -79,9 +81,15 @@ function ReminderPanel() {
     try { setRs(await saveReminderSettings(next)); } catch (e) { setMsg({ ok: false, text: String(e) }); }
   };
   const toggleAuto = async (v: boolean) => {
-    setMsg(null);
-    try { if (v) await enableAutostart(); else await disableAutostart(); setAuto(await autostartEnabled()); }
-    catch (e) { setMsg({ ok: false, text: `设置开机自启失败：${String(e)}` }); }
+    setMsg(null); setAutoBusy(true); const prev = auto; setAuto(v);
+    try {
+      const s = await setAutostart(v);
+      setAuto(s.enabled); setAutoInfo(s);
+      setMsg({ ok: true, text: s.message || (s.enabled ? "已开启开机自启" : "已关闭开机自启") });
+    } catch (e) {
+      setAuto(prev);
+      setMsg({ ok: false, text: `设置开机自启失败：${String(e)}` });
+    } finally { setAutoBusy(false); }
   };
   if (!rs) return null;
   return (
@@ -103,8 +111,8 @@ function ReminderPanel() {
           options={[{ value: "ask", label: "每次询问" }, { value: "tray", label: "隐藏到托盘" }, { value: "exit", label: "退出程序" }]} />
       </div>
       <label className="switch-row">
-        <RowLabel icon={Power} title="开机自动启动" desc={<>开机后静默运行在托盘，按时提醒</>} />
-        <input type="checkbox" className="switch" checked={auto} onChange={(e) => toggleAuto(e.target.checked)} />
+        <RowLabel icon={Power} title="开机自动启动" desc={<>开机后静默运行在托盘并按时提醒；可在任务管理器「启动应用」里确认。{autoInfo?.is_dev_build ? "（当前是开发版，注册的是调试程序路径）" : ""}</>} />
+        <input type="checkbox" className="switch" checked={auto} disabled={autoBusy} onChange={(e) => toggleAuto(e.target.checked)} />
       </label>
       {msg && <div className={msg.ok ? "ok-line" : "error-line"}>{msg.text}</div>}
     </section>

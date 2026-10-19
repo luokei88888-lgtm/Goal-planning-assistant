@@ -16,6 +16,7 @@ mod stats;
 mod templates;
 mod weather;
 mod sse;
+mod autostart_cmd;
 
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
@@ -29,7 +30,6 @@ pub fn run() {
             commands::show_main(app);
         }))
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--autostart"])))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(commands::Streams::default())
@@ -90,7 +90,13 @@ pub fn run() {
             tray.build(app)?;
             // 开机自启：静默到托盘；否则正常显示窗口
             let silent = std::env::args().any(|a| a == "--autostart");
-            if !silent {
+            if silent {
+                let _ = commands::notify(
+                    app.handle(),
+                    "目标计划助手",
+                    "已在托盘静默运行，点托盘图标可打开窗口",
+                );
+            } else {
                 commands::show_main(app.handle());
             }
             // 提醒：每 30 秒检查
@@ -173,7 +179,9 @@ pub fn run() {
             commands::get_goal_reminders,
             commands::save_goal_reminders,
             commands::get_reminder_settings,
-            commands::save_reminder_settings
+            commands::save_reminder_settings,
+            commands::get_autostart,
+            commands::set_autostart
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -241,3 +241,13 @@ export const dbOpenFolder = () => invoke<void>("db_open_folder");
 export const getReduceMotion = () => invoke<boolean>("get_reduce_motion");
 export const setReduceMotion = (on: boolean) => invoke<boolean>("set_reduce_motion", { on });
 export const celebrateOnce = (goalId: number, key: string) => invoke<boolean>("celebrate_once", { goalId, key });
+
+export type AutostartStatus = {
+  enabled: boolean;
+  exe_path: string;
+  is_dev_build: boolean;
+  message: string | null;
+};
+export const getAutostart = () => invoke<AutostartStatus>("get_autostart");
+export const setAutostart = (enabled: boolean) =>
+  invoke<AutostartStatus>("set_autostart", { enabled });
