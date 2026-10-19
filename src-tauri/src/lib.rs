@@ -7,6 +7,7 @@ mod draft;
 mod llm;
 mod reminder;
 mod review;
+mod final_review;
 mod revise;
 mod secret;
 mod providers;
@@ -130,6 +131,10 @@ pub fn run() {
             commands::save_review,
             commands::list_reviews,
             commands::review_ai,
+            commands::final_view,
+            commands::get_final_review,
+            commands::save_final_review,
+            commands::generate_final_review,
             commands::export_backup,
             commands::inspect_backup,
             commands::import_backup,

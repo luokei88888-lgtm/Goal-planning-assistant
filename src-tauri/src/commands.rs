@@ -462,6 +462,68 @@ pub async fn review_ai(app: AppHandle, goal_id: i64, week_start: String, text: r
     review::set_ai_comment(&conn, goal_id, &ws, &c, now())
 }
 
+
+// ---------------- 结项最终总结 ----------------
+#[tauri::command]
+pub fn final_view(app: AppHandle, goal_id: i64) -> Result<crate::final_review::FinalView, String> {
+    crate::final_review::final_view(&open(&app)?, goal_id, &today())
+}
+
+#[tauri::command]
+pub fn get_final_review(app: AppHandle, goal_id: i64) -> Result<Option<crate::final_review::FinalReview>, String> {
+    crate::final_review::get_final_review(&open(&app)?, goal_id)
+}
+
+#[tauri::command]
+pub fn save_final_review(app: AppHandle, goal_id: i64, text: review::ReviewText) -> Result<crate::final_review::FinalReview, String> {
+    crate::final_review::save_final_review(&open(&app)?, goal_id, &text, &today(), now())
+}
+
+/// 先保存手写内容，再流式生成点评；没有 Key / 失败时手写内容已保存
+#[tauri::command]
+pub async fn generate_final_review(
+    app: AppHandle,
+    goal_id: i64,
+    text: review::ReviewText,
+    stream_id: String,
+    on_event: Channel<StreamEvent>,
+) -> Result<crate::final_review::FinalReview, String> {
+    let prompt = {
+        let conn = open(&app)?;
+        let _ = crate::final_review::save_final_review(&conn, goal_id, &text, &today(), now())?;
+        crate::final_review::final_review_user_prompt(&conn, goal_id, &today())?
+    };
+    let cfg = llm_config(&app).map_err(|m| format!("{m}（手写内容已保存）"))?;
+    let msgs = vec![
+        serde_json::json!({"role":"system","content":crate::final_review::FINAL_REVIEW_SYSTEM}),
+        serde_json::json!({"role":"user","content":prompt}),
+    ];
+    let guard = StreamGuard::new(&app, &stream_id);
+    let r = llm::stream_ex(&cfg, msgs, cfg.max_tokens.max(8192), &guard.flag, serde_json::json!({}), llm::IDLE_SECS, |c| {
+        let _ = on_event.send(match c {
+            llm::Chunk::Content(t) => StreamEvent::Delta { text: t.to_string() },
+            llm::Chunk::Reasoning(t) => StreamEvent::Reasoning { text: t.to_string() },
+        });
+        false
+    })
+    .await
+    .map_err(|m| format!("{m}（手写内容已保存）"))?;
+    drop(guard);
+    let conn = open(&app)?;
+    let mut c = r.text.trim().to_string();
+    if c.is_empty() {
+        return crate::final_review::get_final_review(&conn, goal_id)?.ok_or_else(|| "找不到这次结项总结".into());
+    }
+    if r.stopped {
+        c += "\n（已停止生成）";
+    } else if r.finish.as_deref() == Some("length") {
+        c += "\n（点评过长被截断）";
+    } else if r.finish.as_deref() == Some("network") {
+        c += "\n（连接中断，已保留收到的内容，可点「让助手点评」重试）";
+    }
+    crate::final_review::set_final_ai_comment(&conn, goal_id, &c, now())
+}
+
 // ---------------- 备份 ----------------
 use crate::backup;
 

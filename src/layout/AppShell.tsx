@@ -3,12 +3,12 @@ import { useSlider } from "../lib/motion";
 import { Crosshair, Target, MessageCircle, Settings, ChartColumn } from "lucide-react";
 import { StatusPill } from "../components/StatusPill";
 
-export type PageId = "goals" | "chat" | "settings" | "goal-detail" | "revise" | "review" | "stats" | "templates";
+export type PageId = "goals" | "chat" | "settings" | "goal-detail" | "revise" | "review" | "final-review" | "stats" | "templates";
 
 type Props = { page: PageId; onNavigate: (page: PageId) => void; children: ReactNode };
 
 export function AppShell({ page, onNavigate, children }: Props) {
-  const active = page === "goal-detail" || page === "revise" || page === "review" || page === "templates" ? "goals" : page;
+  const active = page === "goal-detail" || page === "revise" || page === "review" || page === "final-review" || page === "templates" ? "goals" : page;
   const item = (id: PageId, label: string, Icon: typeof Target, tone: "cyan" | "pink") => (
     <button
       type="button"

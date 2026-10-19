@@ -13,14 +13,16 @@ pub const FORMAT: &str = "goal-plan-assistant-backup";
 /// v1：结构版本 3（无提醒）；v2：结构版本 4，新增 goal_reminders
 /// v4：数据结构 6（天气缓存表不入备份；天气城市/开关在 settings 里随备份）
 /// v5：数据结构 7（目标状态新增 completed）
-pub const BACKUP_VERSION: i64 = 5;
+/// v6：数据结构 9（结项最终总结 final_reviews）
+pub const BACKUP_VERSION: i64 = 6;
 /// 按外键依赖顺序（导入按此顺序插入，清空按倒序）
-pub const TABLES: [&str; 10] = ["settings", "goals", "plan_versions", "plan_days", "checkins", "chat_sessions", "chat_messages", "weekly_reviews", "goal_reminders", "plan_templates"];
+pub const TABLES: [&str; 11] = ["settings", "goals", "plan_versions", "plan_days", "checkins", "chat_sessions", "chat_messages", "weekly_reviews", "final_reviews", "goal_reminders", "plan_templates"];
 /// 各表从哪个备份版本开始有
 fn since(t: &str) -> i64 {
     match t {
         "goal_reminders" => 2,
         "plan_templates" => 3,
+        "final_reviews" => 6,
         _ => 1,
     }
 }
@@ -36,6 +38,7 @@ pub struct BackupInfo {
     pub checkins: usize,
     pub chat_messages: usize,
     pub weekly_reviews: usize,
+    pub final_reviews: usize,
     pub goal_reminders: usize,
     pub plan_templates: usize,
     pub backup_version: i64,
@@ -102,7 +105,7 @@ pub fn inspect(conn: &Connection, v: &Value) -> R<BackupInfo> {
     let sv = o.get("schema_version").and_then(|x| x.as_i64()).ok_or("备份文件缺少 schema_version")?;
     let cur = schema_version(conn)?;
     // 各备份格式版本对应的数据结构版本（v1=3、v2=4、v3=5、v4=6、v5=当前）
-    let expect = match bv { 1 => 3, 2 => 4, 3 => 5, 4 => 6, _ => cur };
+    let expect = match bv { 1 => 3, 2 => 4, 3 => 5, 4 => 6, 5 => 8, _ => cur };
     if sv != expect {
         return Err(format!("备份的数据结构版本是 {sv}，当前应用是 {cur}，无法导入{}", if sv > cur { "（备份来自更新的版本，请先升级应用）" } else { "" }));
     }
@@ -152,6 +155,7 @@ pub fn inspect(conn: &Connection, v: &Value) -> R<BackupInfo> {
         checkins: n("checkins"),
         chat_messages: n("chat_messages"),
         weekly_reviews: n("weekly_reviews"),
+        final_reviews: n("final_reviews"),
         goal_reminders: n("goal_reminders"),
         plan_templates: n("plan_templates"),
         backup_version: bv,
@@ -248,7 +252,7 @@ mod tests {
         import_sample(&mut dst, "2026-10-01", 0).unwrap(); // 目标库原有数据会被覆盖
         let v = parse(&text).unwrap();
         let info = import(&mut dst, &v).unwrap();
-        assert_eq!((info.goals, info.plan_versions, info.weekly_reviews, info.goal_reminders, info.plan_templates, info.backup_version), (1, 2, 1, 2, 1, 5));
+        assert_eq!((info.goals, info.plan_versions, info.weekly_reviews, info.final_reviews, info.goal_reminders, info.plan_templates, info.backup_version), (1, 2, 1, 0, 2, 1, 6));
         let st: String = dst.query_row("SELECT status FROM goals WHERE id=1", [], |r| r.get(0)).unwrap();
         assert_eq!(st, "completed");
         assert_eq!(crate::templates::list_templates(&dst).unwrap().iter().filter(|t| !t.builtin).count(), 1);
@@ -269,6 +273,7 @@ mod tests {
         v["schema_version"] = json!(3);
         v["tables"].as_object_mut().unwrap().remove("goal_reminders");
         v["tables"].as_object_mut().unwrap().remove("plan_templates");
+        v["tables"].as_object_mut().unwrap().remove("final_reviews");
         for r in v["tables"]["chat_sessions"].as_array_mut().unwrap() {
             r.as_object_mut().unwrap().remove("deleted_at");
         }
@@ -296,6 +301,7 @@ mod tests {
         v["backup_version"] = json!(2);
         v["schema_version"] = json!(4);
         v["tables"].as_object_mut().unwrap().remove("plan_templates");
+        v["tables"].as_object_mut().unwrap().remove("final_reviews");
         for r in v["tables"]["chat_sessions"].as_array_mut().unwrap() {
             r.as_object_mut().unwrap().remove("deleted_at");
         }
@@ -325,6 +331,7 @@ mod tests {
         assert!(!ws.enabled && ws.city.name == "上海", "天气设置随备份恢复");
         v["backup_version"] = json!(3);
         v["schema_version"] = json!(5);
+        v["tables"].as_object_mut().unwrap().remove("final_reviews");
         assert_eq!(import(&mut dst, &v).unwrap().backup_version, 3);
         v["schema_version"] = json!(6);
         assert!(import(&mut dst, &v).is_err());

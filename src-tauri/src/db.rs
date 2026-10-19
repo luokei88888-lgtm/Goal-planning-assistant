@@ -178,6 +178,27 @@ pub fn migrate(conn: &Connection) -> Result<(), rusqlite::Error> {
              COMMIT;",
         )?;
     }
+    if current < 9 {
+        conn.execute_batch(
+            "BEGIN;
+             CREATE TABLE final_reviews (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                goal_id INTEGER NOT NULL UNIQUE REFERENCES goals(id),
+                done INTEGER NOT NULL DEFAULT 0,
+                due INTEGER NOT NULL DEFAULT 0,
+                missed INTEGER NOT NULL DEFAULT 0,
+                longest_streak INTEGER NOT NULL DEFAULT 0,
+                went_well TEXT NOT NULL DEFAULT '',
+                hard TEXT NOT NULL DEFAULT '',
+                next_plan TEXT NOT NULL DEFAULT '',
+                ai_comment TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+             );
+             INSERT INTO schema_migrations (version) VALUES (9);
+             COMMIT;",
+        )?;
+    }
     Ok(())
 }
 
@@ -248,7 +269,7 @@ mod tests {
         let fk: i64 = c.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r.get(0)).unwrap();
         assert_eq!(fk, 0);
         let mv: i64 = c.query_row("SELECT MAX(version) FROM schema_migrations", [], |r| r.get(0)).unwrap();
-        assert_eq!(mv, 8);
+        assert_eq!(mv, 9);
         migrate(&c).unwrap();
     }
 }

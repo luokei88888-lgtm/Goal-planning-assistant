@@ -6,6 +6,7 @@ import { GoalDetailPage } from "./pages/GoalDetailPage";
 import { ChatPage } from "./pages/ChatPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ReviewPage } from "./pages/ReviewPage";
+import { FinalReviewPage } from "./pages/FinalReviewPage";
 import { StatsPage } from "./pages/StatsPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { CloseDialog } from "./components/CloseDialog";
@@ -51,13 +52,14 @@ export default function App() {
   }, []);
   const openRevise = (id: number, text = "") => { setGoalId(id); setPrefill(text); setPage("revise"); };
   const openReview = (id: number) => { setGoalId(id); setPage("review"); };
+  const openFinalReview = (id: number) => { setGoalId(id); setPage("final-review"); };
 
   return (
     <AppShell page={page} onNavigate={nav}>
       {page === "goals" && <GoalsPage key={resetKey} onOpenGoal={openGoal} onTemplates={() => setPage("templates")} />}
       {page === "goal-detail" && goalId !== null && (
         <GoalDetailPage goalId={goalId} onBack={() => { setPage("goals"); setGoalId(null); }}
-          onRevise={() => openRevise(goalId)} onReview={() => openReview(goalId)} />
+          onRevise={() => openRevise(goalId)} onReview={() => openReview(goalId)} onFinalReview={() => openFinalReview(goalId)} />
       )}
       {page === "revise" && goalId !== null && (
         <ChatPage key={`r${goalId}-${resetKey}`} goalId={goalId} prefill={prefill} onBack={() => openGoal(goalId)}
@@ -65,6 +67,9 @@ export default function App() {
       )}
       {page === "review" && goalId !== null && (
         <ReviewPage goalId={goalId} onBack={() => openGoal(goalId)} onRevise={(t) => openRevise(goalId, t)} onGoSettings={() => setPage("settings")} />
+      )}
+      {page === "final-review" && goalId !== null && (
+        <FinalReviewPage goalId={goalId} onBack={() => openGoal(goalId)} onGoSettings={() => setPage("settings")} />
       )}
       {page === "chat" && <ChatPage key={`c${resetKey}-${chatKey}`} prefill={chatPrefill} onOpenGoal={openGoal} onGoSettings={() => setPage("settings")} />}
       {page === "stats" && <StatsPage key={resetKey} onOpenGoal={openGoal} />}

@@ -127,6 +127,28 @@ export const saveReview = (goalId: number, weekStart: string, text: ReviewText) 
 export const listReviews = (goalId: number) => invoke<Review[]>("list_reviews", { goalId });
 export const reviewAi = (goalId: number, weekStart: string, text: ReviewText, streamId: string, onDelta: (t: string) => void) =>
   invoke<Review>("review_ai", { goalId, weekStart, text, streamId, onEvent: channel(onDelta) });
+
+export type FinalDay = {
+  date: string; weekday: string; state: string; title: string | null;
+  is_rest: boolean; day_index: number | null; note: string;
+};
+export type FinalReview = {
+  id: number; goal_id: number; done: number; due: number; missed: number; longest_streak: number;
+  went_well: string; hard: string; next_plan: string; ai_comment: string | null; updated_at: number;
+};
+export type FinalView = {
+  goal_id: number; goal_title: string; status: string; readonly: boolean;
+  start_date: string | null; end_date: string | null;
+  done: number; due: number; missed: number; longest_streak: number;
+  days: FinalDay[]; review: FinalReview | null;
+};
+export const finalView = (goalId: number) => invoke<FinalView>("final_view", { goalId });
+export const getFinalReview = (goalId: number) => invoke<FinalReview | null>("get_final_review", { goalId });
+export const saveFinalReview = (goalId: number, text: ReviewText) => invoke<FinalReview>("save_final_review", { goalId, text });
+export const generateFinalReview = (goalId: number, text: ReviewText, streamId: string, onDelta: (t: string) => void) =>
+  invoke<FinalReview>("generate_final_review", { goalId, text, streamId, onEvent: channel(onDelta) });
+
+
 /** "2026-10-12" 加 n 天 -> "YYYY-MM-DD" */
 export const shiftDate = (d: string, n: number) => {
   const [y, m, dd] = d.split("-").map(Number);
@@ -138,7 +160,7 @@ export const shiftDate = (d: string, n: number) => {
 export type BackupInfo = {
   exported_at: string; app_version: string; schema_version: number;
   goals: number; plan_versions: number; checkins: number; chat_messages: number; weekly_reviews: number;
-  goal_reminders?: number; plan_templates?: number; backup_version?: number;
+  final_reviews?: number; goal_reminders?: number; plan_templates?: number; backup_version?: number;
 };
 export const exportBackup = (path: string) => invoke<BackupInfo>("export_backup", { path });
 export const inspectBackup = (path: string) => invoke<BackupInfo>("inspect_backup", { path });

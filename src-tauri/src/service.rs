@@ -671,7 +671,7 @@ mod tests {
         let c = Connection::open_in_memory().unwrap();
         crate::db::migrate(&c).unwrap();
         let mv: i64 = c.query_row("SELECT MAX(version) FROM schema_migrations", [], |r| r.get(0)).unwrap();
-        assert_eq!(mv, 8);
+        assert_eq!(mv, 9);
         let has: i64 = c
             .query_row(
                 "SELECT COUNT(*) FROM pragma_table_info('plan_days') WHERE name='note'",

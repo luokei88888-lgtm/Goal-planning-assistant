@@ -2,8 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { useRoll, confetti, celebrateToast } from "../lib/motion";
 import { TimePicker } from "../components/TimePicker";
 import { createPortal } from "react-dom";
-import { Activity, RefreshCw, CalendarCheck, History, X, CircleCheck, CloudRain, Sparkles, Lock, ChevronLeft, Undo2, Archive, Coffee, ArchiveRestore, Bell, BellOff, Plus, Trash2, BookmarkPlus, Trophy } from "lucide-react";
-import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, saveDayNote, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce, todayStr } from "../lib/tauri";
+import { Activity, RefreshCw, CalendarCheck, History, X, CircleCheck, CloudRain, Sparkles, Lock, ChevronLeft, Undo2, Archive, Coffee, ArchiveRestore, Bell, BellOff, Plus, Trash2, BookmarkPlus, Trophy, ClipboardPen, Bot } from "lucide-react";
+import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, saveDayNote, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce, todayStr, getFinalReview, type FinalReview } from "../lib/tauri";
 
 function ReminderModal({ goalId, title, onClose, onSaved }: { goalId: number; title: string; onClose: () => void; onSaved: (r: GoalReminders) => void }) {
   const [on, setOn] = useState(false);
@@ -300,6 +300,19 @@ function VersionsModal({ goalId, onClose }: { goalId: number; onClose: () => voi
 }
 
 /** 按日历差算相对解锁文案：明天→明日，后天→后日，其余用绝对日期。勿用列表下标（计划若从后天起，第1项不是「明日」）。 */
+type Props = {
+  goalId: number;
+  onBack: () => void;
+  onRevise: () => void;
+  onReview: () => void;
+  onFinalReview: () => void;
+};
+
+const ts = (s: number) => {
+  const t = new Date(s * 1000);
+  return `${t.getMonth() + 1}月${t.getDate()}日 ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
+};
+
 const unlockText = (date: string) => {
   const today = todayStr();
   const [y, m, d] = today.split("-").map(Number);
@@ -310,7 +323,7 @@ const unlockText = (date: string) => {
   return `${md(date)}解锁`;
 };
 
-export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
+export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalReview }: Props) {
   const [showVers, setShowVers] = useState(false);
   const [rem, setRem] = useState<GoalReminders | null>(null);
   const [showRem, setShowRem] = useState(false);
@@ -329,8 +342,12 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
   };
 
   const [sum, setSum] = useState<{ done: number; due: number; rate: number | null; longest: number } | null>(null);
+  const [finalRv, setFinalRv] = useState<FinalReview | null>(null);
   const load = useCallback(() => getGoalDetail(goalId).then((x) => {
     setD(x);
+    if (x.status === "completed" || x.status === "archived") {
+      getFinalReview(goalId).then(setFinalRv).catch(() => setFinalRv(null));
+    } else setFinalRv(null);
     if (x.status === "completed") {
       // 完成总结：完成率（不含休息日）与最长连续，来自统计
       getStats(goalId).then((s) => {
@@ -426,6 +443,17 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
               <div><b>{sum ? sum.longest : "–"}<small>天</small></b><span>最长连续</span></div>
             </div>
             <p className="today-note">{d.missed.length ? `还有 ${d.missed.length} 天漏打，可以在下方补打。` : "每一天都完成了，太棒了！"}想继续？用「改方案」延长计划会回到进行中。</p>
+            {finalRv && (finalRv.went_well || finalRv.hard || finalRv.next_plan || finalRv.ai_comment) && (
+              <div className="fr-card-summary">
+                {finalRv.went_well && <div className="fr-card-line"><span>做得好</span>{finalRv.went_well}</div>}
+                {finalRv.hard && <div className="fr-card-line"><span>卡在哪</span>{finalRv.hard}</div>}
+                {finalRv.next_plan && <div className="fr-card-line"><span>下次改</span>{finalRv.next_plan}</div>}
+                {finalRv.ai_comment && <div className="fr-card-ai"><Bot size={16} />{finalRv.ai_comment}</div>}
+              </div>
+            )}
+            <button type="button" className="ghost-btn neon-cyan fr-entry" onClick={onFinalReview}>
+              <ClipboardPen size={18} />{finalRv ? "查看 / 编辑最终总结" : "写最终总结"}
+            </button>
           </div>
         ) : t ? (
           <>
