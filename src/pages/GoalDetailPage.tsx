@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRoll, confetti, celebrateToast } from "../lib/motion";
 import { TimePicker } from "../components/TimePicker";
 import { createPortal } from "react-dom";
@@ -53,12 +53,10 @@ function ReminderModal({ goalId, title, onClose, onSaved }: { goalId: number; ti
 }
 
 /** 每日备注：与打卡独立；今天/漏打可写，未来不可写。 */
-function DayNoteEditor({
-  dayId, note, readonly, compact, onSaved, onError,
-}: {
-  dayId: number; note: string; readonly?: boolean; compact?: boolean;
-  onSaved: () => void; onError: (e: string) => void;
-}) {
+function useDayNoteApi(
+  dayId: number, note: string, readonly: boolean | undefined,
+  onSaved: () => void, onError: (e: string) => void,
+) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(note);
   const [busy, setBusy] = useState(false);
@@ -73,6 +71,7 @@ function DayNoteEditor({
     flashTimer.current = window.setTimeout(() => setFlash(null), 1600);
   };
   const flashLabel = flash === "deleted" ? "已删除" : flash === "saved" ? "已保存" : null;
+  const hasNote = Boolean(note.trim());
   const save = async (closeAfter = true) => {
     if (readonly || busy) return;
     if (text.trim() === note.trim()) {
@@ -114,11 +113,34 @@ function DayNoteEditor({
     setEditing(true);
     setFlash(null);
   };
+  return {
+    note, text, setText, editing, busy, flash, setFlash, flashLabel, hasNote, readonly: Boolean(readonly),
+    skipBlur, save, remove, cancel, startEdit,
+  };
+}
+
+type DayNoteApi = ReturnType<typeof useDayNoteApi>;
+const DayNoteCtx = createContext<DayNoteApi | null>(null);
+
+function DayNoteProvider({
+  dayId, note, readonly, onSaved, onError, children,
+}: {
+  dayId: number; note: string; readonly?: boolean;
+  onSaved: () => void; onError: (e: string) => void; children: ReactNode;
+}) {
+  const api = useDayNoteApi(dayId, note, readonly, onSaved, onError);
+  return <DayNoteCtx.Provider value={api}>{children}</DayNoteCtx.Provider>;
+}
+
+function DayNoteBody({ compact }: { compact?: boolean }) {
+  const api = useContext(DayNoteCtx);
+  if (!api) return null;
+  const { note, text, setText, editing, busy, flash, setFlash, flashLabel, hasNote, readonly, skipBlur, save, remove, cancel, startEdit } = api;
 
   if (readonly) {
-    if (!note.trim()) return null;
+    if (!hasNote) return null;
     return (
-      <div className={`day-note-row ${compact ? "compact" : ""} readonly`}>
+      <div className={`day-note-row ${compact ? "compact" : "in-today"} readonly`}>
         <span className="day-note-label">备注</span>
         <span className="day-note-body">{note}</span>
       </div>
@@ -126,16 +148,9 @@ function DayNoteEditor({
   }
 
   if (!editing) {
-    if (!note.trim()) {
-      return (
-        <div className={`day-note-idle ${compact ? "compact" : ""}`}>
-          <button type="button" className="day-note-write" onClick={startEdit}>＋ 写备注</button>
-          {flashLabel && <span className="day-note-flash">{flashLabel}</span>}
-        </div>
-      );
-    }
+    if (!hasNote) return null;
     return (
-      <div className={`day-note-row ${compact ? "compact" : ""}`}>
+      <div className={`day-note-row ${compact ? "compact" : "in-today"}`}>
         <span className="day-note-label">备注</span>
         <span className="day-note-body" title={note}>{note}</span>
         <button type="button" className="day-note-edit" onClick={startEdit}>编辑</button>
@@ -146,7 +161,7 @@ function DayNoteEditor({
   }
 
   return (
-    <div className={`day-note-box ${compact ? "compact" : ""}`}>
+    <div className={`day-note-box ${compact ? "compact" : "in-today"}`}>
       <textarea
         className="day-note-input"
         rows={compact ? 2 : 3}
@@ -163,7 +178,7 @@ function DayNoteEditor({
       <div className="day-note-actions">
         <span className="day-note-count">{text.length}/500</span>
         <div className="day-note-btns">
-          {note.trim() && (
+          {hasNote && (
             <button
               type="button"
               className="day-note-del"
@@ -198,13 +213,32 @@ function DayNoteEditor({
   );
 }
 
-type Props = { goalId: number; onBack: () => void; onRevise: () => void; onReview: () => void };
+function DayNoteWriteLink({ compact }: { compact?: boolean }) {
+  const api = useContext(DayNoteCtx);
+  if (!api || api.readonly || api.editing || api.hasNote) return null;
+  return (
+    <div className={`day-note-idle ${compact ? "compact" : "in-foot"}`}>
+      <button type="button" className="day-note-write" onClick={api.startEdit}>＋ 写备注</button>
+      {api.flashLabel && <span className="day-note-flash">{api.flashLabel}</span>}
+    </div>
+  );
+}
 
-const ts = (s: number | null) => {
-  if (!s) return "";
-  const t = new Date(s * 1000);
-  return `${t.getMonth() + 1}月${t.getDate()}日 ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
-};
+/** compact：漏打行；今天卡用 DayNoteProvider + DayNoteBody + DayNoteWriteLink */
+function DayNoteEditor({
+  dayId, note, readonly, compact, onSaved, onError,
+}: {
+  dayId: number; note: string; readonly?: boolean; compact?: boolean;
+  onSaved: () => void; onError: (e: string) => void;
+}) {
+  return (
+    <DayNoteProvider dayId={dayId} note={note} readonly={readonly} onSaved={onSaved} onError={onError}>
+      <DayNoteBody compact={compact} />
+      <DayNoteWriteLink compact={compact} />
+    </DayNoteProvider>
+  );
+}
+
 
 function VersionsModal({ goalId, onClose }: { goalId: number; onClose: () => void }) {
   const [list, setList] = useState<VersionInfo[]>([]);
@@ -407,7 +441,6 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
                   : <>完成今天<CircleCheck size={30} /></>}
               </button>
             )}
-            <DayNoteEditor dayId={t.id} note={t.note || ""} readonly={ro} onSaved={() => { setError(""); void load(); }} onError={(e) => { setOkMsg(""); setError(e); }} />
           </>
         ) : (
           <>
@@ -418,21 +451,49 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
             </p>
           </>
         )}
-        <div className="progress-box">
-          <div className="progress-row">
-            <span>
-              总进度 · 已完成 {doneN} / {dueTotal} 个行动日
-              <span className="muted progress-cycle"> · 周期共 {d.total} 天{(d.rest ?? 0) > 0 ? `（含休息 ${d.rest} 天）` : ""}</span>
-            </span>
-            <span>{pctN}%</span>
+        {t && d.status !== "completed" ? (
+          <DayNoteProvider
+            dayId={t.id}
+            note={t.note || ""}
+            readonly={ro}
+            onSaved={() => { setError(""); void load(); }}
+            onError={(e) => { setOkMsg(""); setError(e); }}
+          >
+            <div className="progress-box">
+              <div className="progress-row">
+                <span>
+                  总进度 · 已完成 {doneN} / {dueTotal} 个行动日
+                  <span className="muted progress-cycle"> · 周期共 {d.total} 天{(d.rest ?? 0) > 0 ? `（含休息 ${d.rest} 天）` : ""}</span>
+                </span>
+                <span>{pctN}%</span>
+              </div>
+              <div className="bar big"><span className={`fill-cyan m-fill ${barInit.current ? "m-init" : ""}`} style={{ ["--p" as string]: pct / 100 }} /></div>
+              <DayNoteBody />
+              <div className="progress-foot">
+                <span className="pink-text"><CloudRain size={20} />漏打 {d.missed.length}</span>
+                <span className="divider" />
+                <span className="muted">{d.upcoming.length ? `接下来 ${d.upcoming.length} 天` : "没有后续日程"}</span>
+                <DayNoteWriteLink />
+              </div>
+            </div>
+          </DayNoteProvider>
+        ) : (
+          <div className="progress-box">
+            <div className="progress-row">
+              <span>
+                总进度 · 已完成 {doneN} / {dueTotal} 个行动日
+                <span className="muted progress-cycle"> · 周期共 {d.total} 天{(d.rest ?? 0) > 0 ? `（含休息 ${d.rest} 天）` : ""}</span>
+              </span>
+              <span>{pctN}%</span>
+            </div>
+            <div className="bar big"><span className={`fill-cyan m-fill ${barInit.current ? "m-init" : ""}`} style={{ ["--p" as string]: pct / 100 }} /></div>
+            <div className="progress-foot">
+              <span className="pink-text"><CloudRain size={20} />漏打 {d.missed.length}</span>
+              <span className="divider" />
+              <span className="muted">{d.upcoming.length ? `接下来 ${d.upcoming.length} 天` : "没有后续日程"}</span>
+            </div>
           </div>
-          <div className="bar big"><span className={`fill-cyan m-fill ${barInit.current ? "m-init" : ""}`} style={{ ["--p" as string]: pct / 100 }} /></div>
-          <div className="progress-foot">
-            <span className="pink-text"><CloudRain size={20} />漏打 {d.missed.length}</span>
-            <span className="divider" />
-            <span className="muted">{d.upcoming.length ? `接下来 ${d.upcoming.length} 天` : "没有后续日程"}</span>
-          </div>
-        </div>
+        )}
       </section>
 
       <div className="scroll-area m-stagger">
