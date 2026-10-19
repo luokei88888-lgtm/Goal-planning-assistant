@@ -59,68 +59,114 @@ function DayNoteEditor({
   dayId: number; note: string; readonly?: boolean; compact?: boolean;
   onSaved: () => void; onError: (e: string) => void;
 }) {
-  const [open, setOpen] = useState(!!note);
+  const [editing, setEditing] = useState(false);
   const [text, setText] = useState(note);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState(false);
   const skipBlur = useRef(false);
   const flashTimer = useRef<number | null>(null);
-  useEffect(() => { setText(note); if (note) setOpen(true); }, [note, dayId]);
+  useEffect(() => { setText(note); setEditing(false); }, [note, dayId]);
   useEffect(() => () => { if (flashTimer.current) window.clearTimeout(flashTimer.current); }, []);
   const showSaved = () => {
     setFlash(true);
     if (flashTimer.current) window.clearTimeout(flashTimer.current);
-    flashTimer.current = window.setTimeout(() => setFlash(false), 1800);
+    flashTimer.current = window.setTimeout(() => setFlash(false), 1600);
   };
-  const save = async () => {
+  const save = async (closeAfter = true) => {
     if (readonly || busy) return;
-    if (text.trim() === note.trim()) { showSaved(); return; }
-    setBusy(true); setFlash(false);
+    if (text.trim() === note.trim()) {
+      if (closeAfter) setEditing(false);
+      showSaved();
+      return;
+    }
+    setBusy(true);
     try {
       const saved = await saveDayNote(dayId, text);
       setText(saved);
       onSaved();
-      if (!saved.trim()) setOpen(false);
-      else showSaved();
+      if (closeAfter) setEditing(false);
+      showSaved();
     } catch (e) { onError(String(e)); }
     finally { setBusy(false); }
   };
+  const cancel = () => {
+    skipBlur.current = true;
+    setText(note);
+    setEditing(false);
+    setFlash(false);
+  };
+  const startEdit = () => {
+    setText(note);
+    setEditing(true);
+    setFlash(false);
+  };
+
   if (readonly) {
-    if (!note) return null;
-    return <div className={`day-note-view ${compact ? "compact" : ""}`}><span className="day-note-label">备注</span>{note}</div>;
-  }
-  if (!open) {
+    if (!note.trim()) return null;
     return (
-      <button type="button" className={`day-note-toggle ${compact ? "compact" : ""}`} onClick={() => setOpen(true)}>
-        写备注
-      </button>
+      <div className={`day-note-row ${compact ? "compact" : ""} readonly`}>
+        <span className="day-note-label">备注</span>
+        <span className="day-note-body">{note}</span>
+      </div>
     );
   }
+
+  if (!editing) {
+    if (!note.trim()) {
+      return (
+        <div className={`day-note-idle ${compact ? "compact" : ""}`}>
+          <button type="button" className="day-note-write" onClick={startEdit}>＋ 写备注</button>
+          {flash && <span className="day-note-flash">已保存</span>}
+        </div>
+      );
+    }
+    return (
+      <div className={`day-note-row ${compact ? "compact" : ""}`}>
+        <span className="day-note-label">备注</span>
+        <span className="day-note-body" title={note}>{note}</span>
+        <button type="button" className="day-note-edit" onClick={startEdit}>编辑</button>
+        {flash && <span className="day-note-flash">已保存</span>}
+      </div>
+    );
+  }
+
   return (
     <div className={`day-note-box ${compact ? "compact" : ""}`}>
       <textarea
         className="day-note-input"
         rows={compact ? 2 : 3}
         maxLength={500}
-        placeholder="今天没完全按计划？写一句说明，方便以后复盘"
+        autoFocus
+        placeholder="今天没完全按计划？写一句说明，方便以后回顾"
         value={text}
         onChange={(e) => { setText(e.target.value); setFlash(false); }}
         onBlur={() => {
           if (skipBlur.current) { skipBlur.current = false; return; }
-          if (text.trim() !== note.trim()) void save();
+          void save(true);
         }}
       />
       <div className="day-note-actions">
-        <span className="muted small">{text.length}/500</span>
-        <button
-          type="button"
-          className={`mini-btn ${flash ? "on" : ""}`}
-          disabled={busy}
-          onMouseDown={() => { skipBlur.current = true; }}
-          onClick={() => void save()}
-        >
-          {busy ? "保存中…" : flash ? "已保存" : "保存备注"}
-        </button>
+        <span className="day-note-count">{text.length}/500</span>
+        <div className="day-note-btns">
+          <button
+            type="button"
+            className="day-note-cancel"
+            disabled={busy}
+            onMouseDown={() => { skipBlur.current = true; }}
+            onClick={cancel}
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            className={`day-note-save ${flash ? "on" : ""}`}
+            disabled={busy}
+            onMouseDown={() => { skipBlur.current = true; }}
+            onClick={() => void save(true)}
+          >
+            {busy ? "保存中…" : flash ? "已保存" : "保存"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -335,7 +381,7 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
                   : <>完成今天<CircleCheck size={30} /></>}
               </button>
             )}
-            <DayNoteEditor dayId={t.id} note={t.note || ""} readonly={ro} onSaved={() => { setError(""); setOkMsg("备注已保存"); void load(); }} onError={(e) => { setOkMsg(""); setError(e); }} />
+            <DayNoteEditor dayId={t.id} note={t.note || ""} readonly={ro} onSaved={() => { setError(""); void load(); }} onError={(e) => { setOkMsg(""); setError(e); }} />
           </>
         ) : (
           <>
@@ -375,7 +421,7 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
                 <span className="day-meta">{md(m.date)}</span>
                 {!ro && <button type="button" className="mini-btn" disabled={busy} onClick={() => run(() => makeUpCheckIn(m.id))}>补打</button>}
               </div>
-              <DayNoteEditor dayId={m.id} note={m.note || ""} readonly={ro} compact onSaved={() => { setError(""); setOkMsg("备注已保存"); void load(); }} onError={(e) => { setOkMsg(""); setError(e); }} />
+              <DayNoteEditor dayId={m.id} note={m.note || ""} readonly={ro} compact onSaved={() => { setError(""); void load(); }} onError={(e) => { setOkMsg(""); setError(e); }} />
             </div>
             ))}
           </>
