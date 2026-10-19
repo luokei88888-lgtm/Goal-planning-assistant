@@ -110,6 +110,7 @@ pub fn run() {
             commands::check_in,
             commands::make_up_check_in,
             commands::undo_check_in,
+            commands::save_day_note,
             commands::create_goal_with_plan,
             commands::archive_goal,
             commands::import_sample_goal,

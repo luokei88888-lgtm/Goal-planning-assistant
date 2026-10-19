@@ -935,3 +935,28 @@ button.status-pill:hover { border-color: rgba(var(--k-0-240-255),.6); box-shadow
 .wc-city svg { flex: none; color: var(--cyan); }
 .wc-city em { font-style: normal; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .weather-chip:has(.wc-city) { padding-top: 4px; padding-bottom: 4px; }
+
+/* 每日备注 */
+.day-note-box { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.day-note-box.compact { margin-top: 6px; margin-left: 18px; margin-right: 8px; margin-bottom: 10px; }
+.day-note-input {
+  width: 100%; resize: vertical; min-height: 64px; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid rgba(var(--k-34-230-255), .28); background: rgba(0, 0, 0, .28);
+  color: var(--text); font: inherit; line-height: 1.45; outline: none;
+}
+.day-note-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 1px rgba(var(--k-34-230-255), .35); }
+.day-note-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.day-note-toggle {
+  margin-top: 10px; align-self: flex-start; background: transparent; border: 1px dashed rgba(var(--k-34-230-255), .4);
+  color: var(--cyan); border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer;
+}
+.day-note-toggle.compact { margin: 4px 18px 10px; }
+.day-note-toggle:hover { background: rgba(var(--k-34-230-255), .08); }
+.day-note-view { margin-top: 10px; padding: 8px 12px; border-radius: 8px; background: rgba(var(--k-34-230-255), .06);
+  color: var(--muted); font-size: 13px; line-height: 1.45; }
+.day-note-view.compact { margin: 4px 18px 10px; }
+.day-note-label { display: inline-block; margin-right: 8px; color: var(--cyan); font-size: 12px; }
+.day-row-wrap { margin-bottom: 8px; }
+.day-row-wrap .day-row { margin-bottom: 0; }
+.pd-note { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.pd-note span { color: var(--cyan); margin-right: 6px; }

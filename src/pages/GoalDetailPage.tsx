@@ -3,7 +3,7 @@ import { useRoll, confetti, celebrateToast } from "../lib/motion";
 import { TimePicker } from "../components/TimePicker";
 import { createPortal } from "react-dom";
 import { Activity, RefreshCw, CalendarCheck, History, X, CircleCheck, CloudRain, Sparkles, Lock, ChevronLeft, Undo2, Archive, Coffee, ArchiveRestore, Bell, BellOff, Plus, Trash2, BookmarkPlus, Trophy } from "lucide-react";
-import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce, todayStr } from "../lib/tauri";
+import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, saveDayNote, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce, todayStr } from "../lib/tauri";
 
 function ReminderModal({ goalId, title, onClose, onSaved }: { goalId: number; title: string; onClose: () => void; onSaved: (r: GoalReminders) => void }) {
   const [on, setOn] = useState(false);
@@ -49,6 +49,59 @@ function ReminderModal({ goalId, title, onClose, onSaved }: { goalId: number; ti
       </div>
     </div>,
     document.body,
+  );
+}
+
+/** 每日备注：与打卡独立；今天/漏打可写，未来不可写。 */
+function DayNoteEditor({
+  dayId, note, readonly, compact, onSaved, onError,
+}: {
+  dayId: number; note: string; readonly?: boolean; compact?: boolean;
+  onSaved: () => void; onError: (e: string) => void;
+}) {
+  const [open, setOpen] = useState(!!note);
+  const [text, setText] = useState(note);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { setText(note); if (note) setOpen(true); }, [note, dayId]);
+  const save = async () => {
+    if (readonly) return;
+    setBusy(true);
+    try {
+      await saveDayNote(dayId, text);
+      onSaved();
+      if (!text.trim()) setOpen(false);
+    } catch (e) { onError(String(e)); }
+    finally { setBusy(false); }
+  };
+  if (readonly) {
+    if (!note) return null;
+    return <div className={`day-note-view ${compact ? "compact" : ""}`}><span className="day-note-label">备注</span>{note}</div>;
+  }
+  if (!open) {
+    return (
+      <button type="button" className={`day-note-toggle ${compact ? "compact" : ""}`} onClick={() => setOpen(true)}>
+        写备注
+      </button>
+    );
+  }
+  return (
+    <div className={`day-note-box ${compact ? "compact" : ""}`}>
+      <textarea
+        className="day-note-input"
+        rows={compact ? 2 : 3}
+        maxLength={500}
+        placeholder="今天没完全按计划？写一句说明，方便以后复盘"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={() => { if (text.trim() !== note.trim()) void save(); }}
+      />
+      <div className="day-note-actions">
+        <span className="muted small">{text.length}/500</span>
+        <button type="button" className="mini-btn" disabled={busy} onClick={() => void save()}>
+          {busy ? "保存中…" : "保存备注"}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -106,6 +159,7 @@ function VersionsModal({ goalId, onClose }: { goalId: number; onClose: () => voi
                 <div className="pd-title">{x.is_rest && <Coffee size={15} />}{x.title}{x.is_rest && <em>休息日</em>}
                   {x.checked && <span className="ck-tag">{x.kind === "make_up" ? "补打" : "已打卡"}</span>}</div>
                 {x.detail && <div className="pd-detail">{x.detail}</div>}
+                {x.note && <div className="pd-note"><span>备注</span>{x.note}</div>}
               </div>
             </div>
           ))}
@@ -260,6 +314,7 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
                   : <>完成今天<CircleCheck size={30} /></>}
               </button>
             )}
+            <DayNoteEditor dayId={t.id} note={t.note || ""} readonly={ro} onSaved={load} onError={setError} />
           </>
         ) : (
           <>
@@ -292,12 +347,15 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
           <>
             <div className="section-label pink-text"><CloudRain size={18} />漏打</div>
             {d.missed.map((m) => (
-              <div key={m.id} className="day-row glass neon-pink-soft" style={{ ["--i" as string]: 0 }}>
+              <div key={m.id} className="day-row-wrap" style={{ ["--i" as string]: 0 }}>
+              <div className="day-row glass neon-pink-soft">
                 <span className="day-tag pink-text">第{m.day_index}天</span>
                 <span className="day-task">{m.title}</span>
                 <span className="day-meta">{md(m.date)}</span>
                 {!ro && <button type="button" className="mini-btn" disabled={busy} onClick={() => run(() => makeUpCheckIn(m.id))}>补打</button>}
               </div>
+              <DayNoteEditor dayId={m.id} note={m.note || ""} readonly={ro} compact onSaved={load} onError={setError} />
+            </div>
             ))}
           </>
         )}

@@ -9,7 +9,7 @@ export type GoalSummary = {
 
 export type DayItem = {
   id: number; day_index: number; date: string; title: string; detail: string;
-  is_rest: boolean; checked: boolean; kind: "on_time" | "make_up" | null;
+  is_rest: boolean; checked: boolean; kind: "on_time" | "make_up" | null; note: string;
 };
 
 export type GoalDetail = {
@@ -32,6 +32,7 @@ export const getGoalDetail = (goalId: number) => invoke<GoalDetail>("get_goal_de
 export const checkIn = (planDayId: number) => invoke<void>("check_in", { planDayId });
 export const makeUpCheckIn = (planDayId: number) => invoke<void>("make_up_check_in", { planDayId });
 export const undoCheckIn = (planDayId: number) => invoke<void>("undo_check_in", { planDayId });
+export const saveDayNote = (planDayId: number, note: string) => invoke<string>("save_day_note", { planDayId, note });
 export const createGoalWithPlan = (goal: NewGoal) => invoke<number>("create_goal_with_plan", { goal });
 export const archiveGoal = (goalId: number) => invoke<void>("archive_goal", { goalId });
 export const importSampleGoal = () => invoke<number>("import_sample_goal");

@@ -170,6 +170,14 @@ pub fn migrate(conn: &Connection) -> Result<(), rusqlite::Error> {
     if current < 7 {
         migrate_v7(conn)?;
     }
+    if current < 8 {
+        conn.execute_batch(
+            "BEGIN;
+             ALTER TABLE plan_days ADD COLUMN note TEXT NOT NULL DEFAULT '';
+             INSERT INTO schema_migrations (version) VALUES (8);
+             COMMIT;",
+        )?;
+    }
     Ok(())
 }
 
@@ -240,7 +248,7 @@ mod tests {
         let fk: i64 = c.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r.get(0)).unwrap();
         assert_eq!(fk, 0);
         let mv: i64 = c.query_row("SELECT MAX(version) FROM schema_migrations", [], |r| r.get(0)).unwrap();
-        assert_eq!(mv, 7);
+        assert_eq!(mv, 8);
         migrate(&c).unwrap();
     }
 }

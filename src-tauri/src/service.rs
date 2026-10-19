@@ -44,6 +44,8 @@ pub struct DayItem {
     pub is_rest: bool,
     pub checked: bool,
     pub kind: Option<String>,
+    /// 当日备注（与打卡独立；未打卡也可写）
+    pub note: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -116,7 +118,7 @@ pub(crate) fn version_for(conn: &Connection, goal_id: i64, active_only: bool) ->
 pub(crate) fn days_of(conn: &Connection, version_id: i64) -> R<Vec<DayItem>> {
     let mut st = conn
         .prepare(
-            "SELECT d.id, d.day_index, d.date, d.title, d.detail, d.is_rest, c.kind
+            "SELECT d.id, d.day_index, d.date, d.title, d.detail, d.is_rest, c.kind, d.note
              FROM plan_days d LEFT JOIN checkins c ON c.plan_day_id = d.id
              WHERE d.plan_version_id = ?1 ORDER BY d.day_index",
         )
@@ -133,6 +135,7 @@ pub(crate) fn days_of(conn: &Connection, version_id: i64) -> R<Vec<DayItem>> {
                 is_rest: r.get::<_, i64>(5)? != 0,
                 checked: kind.is_some(),
                 kind,
+                note: r.get(7)?,
             })
         })
         .map_err(e)?;
@@ -309,6 +312,41 @@ pub fn undo_check_in(conn: &Connection, plan_day_id: i64) -> R<()> {
     conn.execute("DELETE FROM checkins WHERE plan_day_id = ?1", [plan_day_id]).map_err(e)?;
     Ok(())
 }
+/// 保存某天的备注（与打卡独立）。允许今天与过去；拒绝未来日；归档/旧版本只读。
+pub fn save_day_note(conn: &Connection, plan_day_id: i64, note: &str, today: &str) -> R<String> {
+    const MAX: usize = 500;
+    let note = note.trim();
+    if note.chars().count() > MAX {
+        return Err(format!("备注最多 {MAX} 字"));
+    }
+    let row: Option<(String, String, String)> = conn
+        .query_row(
+            "SELECT d.date, v.status, g.status FROM plan_days d
+             JOIN plan_versions v ON v.id = d.plan_version_id
+             JOIN goals g ON g.id = v.goal_id
+             WHERE d.id = ?1",
+            [plan_day_id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .optional()
+        .map_err(e)?;
+    let (date, vstatus, gstatus) = row.ok_or("找不到这一天的计划")?;
+    if gstatus == "archived" {
+        return Err("目标已归档，只能查看，不能改备注".into());
+    }
+    match vstatus.as_str() {
+        "draft" => return Err("草案还没生效，不能改备注".into()),
+        "archived" => return Err("这是归档的旧版本，只能查看，不能改备注".into()),
+        _ => {}
+    }
+    if date.as_str() > today {
+        return Err("未来的日子还没到，不能写备注".into());
+    }
+    conn.execute("UPDATE plan_days SET note = ?1 WHERE id = ?2", params![note, plan_day_id])
+        .map_err(e)?;
+    Ok(note.to_string())
+}
+
 
 /// 新建目标并直接生效第 1 版计划（日期从 start_date 起逐日连续）
 pub fn create_goal_with_plan(conn: &mut Connection, g: &NewGoal, now: i64) -> R<i64> {
@@ -576,5 +614,71 @@ mod tests {
         let id2 = import_sample(&mut conn, "2026-10-14", 2).unwrap();
         assert_eq!(id2, 1, "自增应已重置");
         assert_eq!(get_goal_detail(&conn, id2, "2026-10-14", 0).unwrap().done, 5);
+    }
+    #[test]
+    fn day_note_independent_of_checkin() {
+        let (conn, id) = setup();
+        let d = get_goal_detail(&conn, id, "2026-10-14", 5).unwrap();
+        let today = d.today.as_ref().unwrap().id;
+        let missed = d.missed[0].id;
+        let future = d.upcoming[0].id;
+
+        // 未打卡也能写
+        let n = save_day_note(&conn, today, "  和朋友聚餐，没控食  ", "2026-10-14").unwrap();
+        assert_eq!(n, "和朋友聚餐，没控食");
+        let d = get_goal_detail(&conn, id, "2026-10-14", 5).unwrap();
+        assert_eq!(d.today.as_ref().unwrap().note, "和朋友聚餐，没控食");
+        assert!(!d.today.as_ref().unwrap().checked);
+
+        // 打卡后备注仍在
+        check_in(&conn, today, "2026-10-14", 1).unwrap();
+        let d = get_goal_detail(&conn, id, "2026-10-14", 5).unwrap();
+        assert!(d.today.as_ref().unwrap().checked);
+        assert_eq!(d.today.as_ref().unwrap().note, "和朋友聚餐，没控食");
+
+        // 撤销打卡备注仍在
+        undo_check_in(&conn, today).unwrap();
+        let d = get_goal_detail(&conn, id, "2026-10-14", 5).unwrap();
+        assert!(!d.today.as_ref().unwrap().checked);
+        assert_eq!(d.today.as_ref().unwrap().note, "和朋友聚餐，没控食");
+
+        // 漏打日可写
+        save_day_note(&conn, missed, "那天加班没练", "2026-10-14").unwrap();
+        let d = get_goal_detail(&conn, id, "2026-10-14", 5).unwrap();
+        assert_eq!(d.missed[0].note, "那天加班没练");
+
+        // 未来日拒绝
+        assert!(save_day_note(&conn, future, "提前写", "2026-10-14").is_err());
+
+        // 超长拒绝
+        let long = "字".repeat(501);
+        assert!(save_day_note(&conn, today, &long, "2026-10-14").is_err());
+
+        // 清空
+        assert_eq!(save_day_note(&conn, today, "   ", "2026-10-14").unwrap(), "");
+    }
+
+    #[test]
+    fn day_note_rejects_archived() {
+        let (mut conn, id) = setup();
+        let today = get_goal_detail(&conn, id, "2026-10-14", 0).unwrap().today.unwrap().id;
+        archive_goal(&mut conn, id, 2).unwrap();
+        assert!(save_day_note(&conn, today, "归档后", "2026-10-14").is_err());
+    }
+
+    #[test]
+    fn v8_migration_adds_note_column() {
+        let c = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&c).unwrap();
+        let mv: i64 = c.query_row("SELECT MAX(version) FROM schema_migrations", [], |r| r.get(0)).unwrap();
+        assert_eq!(mv, 8);
+        let has: i64 = c
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('plan_days') WHERE name='note'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(has, 1);
     }
 }

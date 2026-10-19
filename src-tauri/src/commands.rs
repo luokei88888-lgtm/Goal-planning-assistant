@@ -74,6 +74,11 @@ pub fn undo_check_in(app: AppHandle, plan_day_id: i64) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn save_day_note(app: AppHandle, plan_day_id: i64, note: String) -> Result<String, String> {
+    service::save_day_note(&open(&app)?, plan_day_id, &note, &today())
+}
+
+#[tauri::command]
 pub fn create_goal_with_plan(app: AppHandle, goal: NewGoal) -> Result<i64, String> {
     service::create_goal_with_plan(&mut open(&app)?, &goal, now())
 }
