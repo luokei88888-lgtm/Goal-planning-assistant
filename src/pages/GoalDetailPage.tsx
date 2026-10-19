@@ -62,14 +62,26 @@ function DayNoteEditor({
   const [open, setOpen] = useState(!!note);
   const [text, setText] = useState(note);
   const [busy, setBusy] = useState(false);
+  const [flash, setFlash] = useState(false);
+  const skipBlur = useRef(false);
+  const flashTimer = useRef<number | null>(null);
   useEffect(() => { setText(note); if (note) setOpen(true); }, [note, dayId]);
+  useEffect(() => () => { if (flashTimer.current) window.clearTimeout(flashTimer.current); }, []);
+  const showSaved = () => {
+    setFlash(true);
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    flashTimer.current = window.setTimeout(() => setFlash(false), 1800);
+  };
   const save = async () => {
-    if (readonly) return;
-    setBusy(true);
+    if (readonly || busy) return;
+    if (text.trim() === note.trim()) { showSaved(); return; }
+    setBusy(true); setFlash(false);
     try {
-      await saveDayNote(dayId, text);
+      const saved = await saveDayNote(dayId, text);
+      setText(saved);
       onSaved();
-      if (!text.trim()) setOpen(false);
+      if (!saved.trim()) setOpen(false);
+      else showSaved();
     } catch (e) { onError(String(e)); }
     finally { setBusy(false); }
   };
@@ -92,13 +104,22 @@ function DayNoteEditor({
         maxLength={500}
         placeholder="今天没完全按计划？写一句说明，方便以后复盘"
         value={text}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={() => { if (text.trim() !== note.trim()) void save(); }}
+        onChange={(e) => { setText(e.target.value); setFlash(false); }}
+        onBlur={() => {
+          if (skipBlur.current) { skipBlur.current = false; return; }
+          if (text.trim() !== note.trim()) void save();
+        }}
       />
       <div className="day-note-actions">
         <span className="muted small">{text.length}/500</span>
-        <button type="button" className="mini-btn" disabled={busy} onClick={() => void save()}>
-          {busy ? "保存中…" : "保存备注"}
+        <button
+          type="button"
+          className={`mini-btn ${flash ? "on" : ""}`}
+          disabled={busy}
+          onMouseDown={() => { skipBlur.current = true; }}
+          onClick={() => void save()}
+        >
+          {busy ? "保存中…" : flash ? "已保存" : "保存备注"}
         </button>
       </div>
     </div>
@@ -314,7 +335,7 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
                   : <>完成今天<CircleCheck size={30} /></>}
               </button>
             )}
-            <DayNoteEditor dayId={t.id} note={t.note || ""} readonly={ro} onSaved={load} onError={setError} />
+            <DayNoteEditor dayId={t.id} note={t.note || ""} readonly={ro} onSaved={() => { setError(""); setOkMsg("备注已保存"); void load(); }} onError={(e) => { setOkMsg(""); setError(e); }} />
           </>
         ) : (
           <>
@@ -354,7 +375,7 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview }: Props) {
                 <span className="day-meta">{md(m.date)}</span>
                 {!ro && <button type="button" className="mini-btn" disabled={busy} onClick={() => run(() => makeUpCheckIn(m.id))}>补打</button>}
               </div>
-              <DayNoteEditor dayId={m.id} note={m.note || ""} readonly={ro} compact onSaved={load} onError={setError} />
+              <DayNoteEditor dayId={m.id} note={m.note || ""} readonly={ro} compact onSaved={() => { setError(""); setOkMsg("备注已保存"); void load(); }} onError={(e) => { setOkMsg(""); setError(e); }} />
             </div>
             ))}
           </>
