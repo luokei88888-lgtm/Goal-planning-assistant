@@ -142,7 +142,7 @@ function DayNoteBody({ compact }: { compact?: boolean }) {
     return (
       <div className={`day-note-row ${compact ? "compact" : "in-today"} readonly`}>
         <span className="day-note-label">备注</span>
-        <span className="day-note-body">{note}</span>
+        <span className="day-note-body" title={note}>{note}</span>
       </div>
     );
   }
@@ -153,9 +153,11 @@ function DayNoteBody({ compact }: { compact?: boolean }) {
       <div className={`day-note-row ${compact ? "compact" : "in-today"}`}>
         <span className="day-note-label">备注</span>
         <span className="day-note-body" title={note}>{note}</span>
-        <button type="button" className="day-note-edit" onClick={startEdit}>编辑</button>
-        <button type="button" className="day-note-del" disabled={busy} onClick={() => void remove()}>删除</button>
-        {flashLabel && <span className="day-note-flash">{flashLabel}</span>}
+        <span className="day-note-ops">
+          <button type="button" className="day-note-edit" onClick={startEdit}>编辑</button>
+          <button type="button" className="day-note-del" disabled={busy} onClick={() => void remove()}>删除</button>
+          {flashLabel && <span className="day-note-flash">{flashLabel}</span>}
+        </span>
       </div>
     );
   }
