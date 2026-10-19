@@ -109,7 +109,7 @@ export type VersionInfo = {
   version_no: number; status: string; source: string; summary: string; start_date: string; end_date: string;
   created_at: number; activated_at: number | null; total: number; done: number;
 };
-export type WeekCell = { date: string; weekday: string; state: "done" | "missed" | "today" | "future" | "none"; title: string | null; is_rest: boolean; day_index: number | null };
+export type WeekCell = { date: string; weekday: string; state: "done" | "missed" | "today" | "future" | "none"; title: string | null; is_rest: boolean; day_index: number | null; note: string };
 export type Review = {
   id: number; goal_id: number; week_start: string; done: number; due: number; missed: number;
   went_well: string; hard: string; next_plan: string; ai_comment: string | null; updated_at: number;

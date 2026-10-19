@@ -19,6 +19,8 @@ pub struct Cell {
     pub title: Option<String>,
     pub is_rest: bool,
     pub day_index: Option<i64>,
+    /// 当日备注（无计划天为空串）
+    pub note: String,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -155,6 +157,7 @@ pub fn week_view(conn: &Connection, goal_id: i64, week_start: Option<&str>, toda
             title: d.map(|x| x.title.clone()),
             is_rest: d.map(|x| x.is_rest).unwrap_or(false),
             day_index: d.map(|x| x.day_index),
+            note: d.map(|x| x.note.clone()).unwrap_or_default(),
             date,
         });
     }
@@ -201,7 +204,7 @@ pub fn set_ai_comment(conn: &Connection, goal_id: i64, week_start: &str, comment
     get_review(conn, goal_id, week_start)?.ok_or_else(|| "找不到这次复盘".into())
 }
 
-pub const REVIEW_SYSTEM: &str = "你是「目标计划助手」的复盘教练。根据用户这一周的执行数据和自述感受，用中文给出简洁、具体、鼓励式的点评：\n1. 一句肯定（基于真实数据，不要空夸）；\n2. 本周问题的原因分析（1-2 点）；\n3. 下周 2-4 条可执行的建议，如果需要调整计划（降强度、换内容、调休息日、延长周期等），要明确写出怎么调。\n不要输出 JSON 或代码块，总共不超过 350 字。";
+pub const REVIEW_SYSTEM: &str = "你是「目标计划助手」的复盘教练。根据用户这一周的执行数据、每日备注，以及周复盘三个自述框，用中文给出简洁、具体、鼓励式的点评：\n1. 一句肯定（基于真实数据与备注，不要空夸）；\n2. 本周问题的原因分析（1-2 点），必须结合每日备注里写过的偏差、聚餐、偷懒、加班等说明；若「困难的」框为空但某天有备注，应引用该每日备注，不要说「没有留下备注」；\n3. 下周 2-4 条可执行的建议，如果需要调整计划（降强度、换内容、调休息日、延长周期等），要明确写出怎么调。\n不要只复述「顺利的/困难的/下周打算」三个框；每日备注与打卡状态同等重要。\n不要输出 JSON 或代码块，总共不超过 350 字。";
 
 pub fn review_user_prompt(conn: &Connection, goal_id: i64, week_start: &str, today: &str) -> R<String> {
     let w = week_view(conn, goal_id, Some(week_start), today)?;
@@ -221,10 +224,28 @@ pub fn review_user_prompt(conn: &Connection, goal_id: i64, week_start: &str, tod
             "future" => "未到",
             _ => "无计划",
         };
-        s += &format!("周{} {} {}{} [{st}]\n", c.weekday, c.date, c.title.as_deref().unwrap_or("-"), if c.is_rest { "（休息）" } else { "" });
+        let note_part = if c.state == "none" {
+            String::new()
+        } else if c.note.trim().is_empty() {
+            " 备注：（无）".to_string()
+        } else {
+            format!(" 备注：{}", c.note.trim())
+        };
+        s += &format!(
+            "周{} {} {}{} [{st}]{note_part}\n",
+            c.weekday,
+            c.date,
+            c.title.as_deref().unwrap_or("-"),
+            if c.is_rest { "（休息）" } else { "" }
+        );
     }
     let or = |x: &str| if x.is_empty() { "（没写）".to_string() } else { x.to_string() };
-    s += &format!("\n顺利的：{}\n困难的：{}\n下周打算：{}", or(&r.went_well), or(&r.hard), or(&r.next_plan));
+    s += &format!(
+        "\n【周复盘自述】（可与上方每日备注对照，不要只看这一段）\n顺利的：{}\n困难的：{}\n下周打算：{}",
+        or(&r.went_well),
+        or(&r.hard),
+        or(&r.next_plan)
+    );
     Ok(s)
 }
 
@@ -272,5 +293,55 @@ mod tests {
         assert_eq!(all[0].week_start, "2026-10-12");
         assert!(save_review(&conn, id, "2026-10-20", &t, "2026-10-14", 6).is_err());
         assert!(review_user_prompt(&conn, id, "2026-10-05", "2026-10-14").unwrap().contains("周六加班"));
+    }
+
+    #[test]
+    fn review_prompt_includes_daily_notes() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&conn).unwrap();
+        let id = import_sample(&mut conn, "2026-10-14", 0).unwrap();
+        let detail = get_goal_detail(&conn, id, "2026-10-14", 0).unwrap();
+        let today_id = detail.today.as_ref().unwrap().id;
+        save_day_note(&conn, today_id, "今天晚上吃超了", "2026-10-14").unwrap();
+        // 周复盘「困难的」留空，确保每日备注仍进入点评上下文
+        save_review(
+            &conn,
+            id,
+            "2026-10-12",
+            &ReviewText {
+                went_well: "基本打卡".into(),
+                hard: "".into(),
+                next_plan: "继续".into(),
+            },
+            "2026-10-14",
+            10,
+        )
+        .unwrap();
+        let prompt = review_user_prompt(&conn, id, "2026-10-12", "2026-10-14").unwrap();
+        assert!(
+            prompt.contains("今天晚上吃超了"),
+            "prompt should include daily note: {prompt}"
+        );
+        assert!(
+            prompt.contains("备注：今天晚上吃超了"),
+            "note should be labeled: {prompt}"
+        );
+        assert!(
+            prompt.contains("备注：（无）"),
+            "days without notes should be marked: {prompt}"
+        );
+        assert!(
+            prompt.contains("【周复盘自述】"),
+            "self-review section header missing: {prompt}"
+        );
+        assert!(
+            REVIEW_SYSTEM.contains("每日备注"),
+            "system prompt should mention daily notes"
+        );
+        let w = week_view(&conn, id, Some("2026-10-12"), "2026-10-14").unwrap();
+        let today_cell = w.cells.iter().find(|c| c.date == "2026-10-14").unwrap();
+        assert_eq!(today_cell.note, "今天晚上吃超了");
+        let empty = w.cells.iter().find(|c| c.date == "2026-10-12").unwrap();
+        assert_eq!(empty.note, "");
     }
 }
