@@ -941,40 +941,41 @@ button.status-pill:hover { border-color: rgba(var(--k-0-240-255),.6); box-shadow
 .day-note-idle.compact { margin: 4px 18px 6px; justify-content: flex-start; }
 .day-note-idle.in-foot { margin: 0 0 0 auto; justify-content: flex-end; flex-shrink: 0; }
 .day-note-write {
-  background: transparent; border: none; color: var(--cyan); font-size: 13px; padding: 0 2px;
-  cursor: pointer; opacity: .78; text-decoration: none; white-space: nowrap; line-height: 1.2;
+  background: transparent; border: none; color: var(--cyan); font-size: 16px; font-weight: 400; padding: 0 2px;
+  cursor: pointer; opacity: .78; text-decoration: none; white-space: nowrap; line-height: 1.4;
 }
 .day-note-write:hover { opacity: 1; text-shadow: 0 0 8px rgba(var(--k-34-230-255), .45); }
 .day-note-row {
   width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 8px; text-align: left;
   padding: 0; border: none; background: transparent;
+  font-size: 16px; font-weight: 400; line-height: 1.4;
 }
 .day-note-row.in-today { margin: 9px 0 0; }
 .day-note-row.compact { margin: 6px 18px 8px; }
 .day-note-row.readonly { opacity: .9; }
 .day-note-label {
-  flex-shrink: 0; color: var(--muted); font-size: 12px; font-weight: 500; line-height: 1.4;
+  flex-shrink: 0; color: var(--muted); font-size: 16px; font-weight: 400; line-height: 1.4;
 }
 .day-note-body {
-  flex: 1; min-width: 0; color: var(--muted); font-size: 13px; line-height: 1.4;
+  flex: 1; min-width: 0; color: var(--text); font-size: 16px; font-weight: 400; line-height: 1.4;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .day-note-ops {
   flex-shrink: 0; display: inline-flex; align-items: center; gap: 8px; margin-left: 4px;
 }
 .day-note-edit {
-  flex-shrink: 0; background: transparent; border: none; color: var(--cyan); font-size: 12px;
+  flex-shrink: 0; background: transparent; border: none; color: var(--cyan); font-size: 16px; font-weight: 400;
   padding: 0 2px; cursor: pointer; opacity: .8; line-height: 1.4;
 }
 .day-note-edit:hover { opacity: 1; text-decoration: underline; }
 .day-note-del {
-  flex-shrink: 0; background: transparent; border: none; color: var(--pink); font-size: 12px;
+  flex-shrink: 0; background: transparent; border: none; color: var(--pink); font-size: 16px; font-weight: 400;
   padding: 0 2px; cursor: pointer; opacity: .72; line-height: 1.4;
 }
 .day-note-del:hover { opacity: 1; text-decoration: underline; text-shadow: 0 0 8px rgba(var(--k-255-63-180), .45); }
 .day-note-del:disabled { opacity: .45; cursor: default; text-decoration: none; text-shadow: none; }
-.day-note-flash { flex-shrink: 0; color: rgb(var(--k-46-232-138)); font-size: 12px; line-height: 1.4; }
-.day-note-btns .day-note-del { font-size: 12px; padding: 4px 8px; }
+.day-note-flash { flex-shrink: 0; color: rgb(var(--k-46-232-138)); font-size: 16px; font-weight: 400; line-height: 1.4; }
+.day-note-btns .day-note-del { font-size: 16px; padding: 4px 8px; }
 .day-note-box { width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; text-align: left; }
 .day-note-box.in-today { margin: 9px 0 0; }
 .day-note-box.compact { margin: 6px 18px 8px; }
@@ -982,7 +983,7 @@ button.status-pill:hover { border-color: rgba(var(--k-0-240-255),.6); box-shadow
   width: 100%; resize: vertical; min-height: 52px; max-height: 160px; padding: 8px 10px; border-radius: 8px;
   border: 1px solid rgba(var(--k-34-230-255), .28);
   background: rgba(255, 255, 255, .06);
-  color: var(--text); font: inherit; font-size: 13px; line-height: 1.45; outline: none;
+  color: var(--text); font: inherit; font-size: 16px; font-weight: 400; line-height: 1.4; outline: none;
   box-sizing: border-box;
 }
 .day-note-input::placeholder { color: var(--muted); opacity: .75; }
@@ -992,14 +993,14 @@ button.status-pill:hover { border-color: rgba(var(--k-0-240-255),.6); box-shadow
   box-shadow: 0 0 0 1px rgba(var(--k-34-230-255), .22), 0 0 10px rgba(var(--k-34-230-255), .14);
 }
 .day-note-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.day-note-count { color: var(--muted); font-size: 12px; }
+.day-note-count { color: var(--muted); font-size: 16px; font-weight: 400; line-height: 1.4; }
 .day-note-btns { display: flex; align-items: center; gap: 8px; }
 .day-note-cancel {
-  background: transparent; border: none; color: var(--muted); font-size: 13px; padding: 4px 8px; cursor: pointer;
+  background: transparent; border: none; color: var(--muted); font-size: 16px; font-weight: 400; line-height: 1.4; padding: 4px 8px; cursor: pointer;
 }
 .day-note-cancel:hover { color: var(--text); }
 .day-note-save {
-  padding: 5px 14px; border-radius: 999px; font-size: 13px; cursor: pointer;
+  padding: 5px 14px; border-radius: 999px; font-size: 16px; font-weight: 400; line-height: 1.4; cursor: pointer;
   color: var(--cyan); background: rgba(var(--k-34-230-255), .12);
   border: 1px solid rgba(var(--k-34-230-255), .55);
   box-shadow: 0 0 10px rgba(var(--k-34-230-255), .25);
