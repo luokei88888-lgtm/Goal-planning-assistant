@@ -477,6 +477,13 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
             <p className="today-note">{t.detail || " "}</p>
             {ro ? (
               <div className="muted">归档版本只读{t.checked ? " · 当天已完成" : ""}</div>
+            ) : t.is_rest ? (
+              <div className="muted">今天是休息日，不用打卡{t.checked ? " · 若误打可撤销" : ""}
+                {t.checked && (
+                  <button type="button" className="mini-btn" style={{ marginLeft: 8 }} disabled={busy}
+                    onClick={() => run(() => undoCheckIn(t.id))}>撤销</button>
+                )}
+              </div>
             ) : (
               <button type="button" className={`checkin-btn ${t.checked ? "done" : ""}`} disabled={busy}
                 title={t.checked ? "再点一次可撤销今天的打卡" : undefined}

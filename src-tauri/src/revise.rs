@@ -100,7 +100,7 @@ pub fn plan_context(conn: &Connection, goal_id: i64, today: &str) -> R<String> {
         .map(|(i, t)| (i, serde_json::from_str(&t).unwrap_or_default()))
         .collect();
     let done = days.iter().filter(|d| d.checked).count();
-    let missed = days.iter().filter(|d| d.date.as_str() < today && !d.checked).count();
+    let missed = days.iter().filter(|d| d.date.as_str() < today && !d.checked && !d.is_rest).count();
     let mut out = format!(
         "目标：{title}\n当前生效版本：v{}（{} 至 {}，共 {} 天）\n已完成 {done} 天，漏打 {missed} 天。\n\n【今天以前（不会改动）】\n",
         v.no, v.start, v.end, days.len()
@@ -196,12 +196,12 @@ pub fn revise_plan(conn: &mut Connection, goal_id: i64, days: &[NewDay], summary
     let t = parse_date(today)?;
     let old = version_for(conn, goal_id, true)?.ok_or("这个目标没有生效中的计划")?;
     let tx = conn.transaction().map_err(e)?;
-    let past: Vec<(String, String, String, String, i64)> = {
+    let past: Vec<(String, String, String, String, i64, String)> = {
         let mut st = tx
-            .prepare("SELECT date, title, detail, tasks, is_rest FROM plan_days WHERE plan_version_id=?1 AND date < ?2 ORDER BY day_index")
+            .prepare("SELECT date, title, detail, tasks, is_rest, note FROM plan_days WHERE plan_version_id=?1 AND date < ?2 ORDER BY day_index")
             .map_err(e)?;
         let rows = st
-            .query_map(params![old.id, today], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)))
+            .query_map(params![old.id, today], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?)))
             .map_err(e)?;
         rows.collect::<Result<Vec<_>, _>>().map_err(e)?
     };
@@ -219,11 +219,11 @@ pub fn revise_plan(conn: &mut Connection, goal_id: i64, days: &[NewDay], summary
     .map_err(e)?;
     let vid = tx.last_insert_rowid();
     let mut idx = 0i64;
-    for (date, title, detail, tasks, rest) in &past {
+    for (date, title, detail, tasks, rest, note) in &past {
         idx += 1;
         tx.execute(
-            "INSERT INTO plan_days (plan_version_id, day_index, date, title, detail, tasks, is_rest) VALUES (?1,?2,?3,?4,?5,?6,?7)",
-            params![vid, idx, date, title, detail, tasks, rest],
+            "INSERT INTO plan_days (plan_version_id, day_index, date, title, detail, tasks, is_rest, note) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
+            params![vid, idx, date, title, detail, tasks, rest, note],
         )
         .map_err(e)?;
     }
@@ -266,6 +266,9 @@ mod tests {
         let id = import_sample(&mut conn, "2026-10-14", 0).unwrap();
         let d = get_goal_detail(&conn, id, "2026-10-14", 0).unwrap();
         let old_today = d.today.unwrap().id;
+        // 过去某天写备注，改方案后应带到新版本
+        let past_day = d.missed[0].id;
+        save_day_note(&conn, past_day, "那天加班没练", "2026-10-14").unwrap();
         check_in(&conn, old_today, "2026-10-14", 1).unwrap();
         let draft: DraftPlan = serde_json::from_str(
             r#"{"title":"30天减脂","summary":"降强度","start_date":"2026-10-14","days_count":3,
@@ -285,6 +288,7 @@ mod tests {
         assert_eq!(d.done, 6, "过去 5 天 + 今天的打卡都保留");
         assert_eq!(d.missed.len(), 1);
         assert_eq!(d.missed[0].day_index, 5);
+        assert_eq!(d.missed[0].note, "那天加班没练", "改方案应保留过去日备注");
         let t = d.today.unwrap();
         assert_eq!((t.day_index, t.title.as_str(), t.checked), (8, "散步30分钟", true));
         assert_eq!(d.end_date.as_deref(), Some("2026-10-16"));

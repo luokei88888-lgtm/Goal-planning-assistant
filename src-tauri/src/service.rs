@@ -189,7 +189,7 @@ pub fn list_goals_by(conn: &Connection, today: &str, archived: bool) -> R<Vec<Go
             let days = days_of(conn, v.id)?;
             total = days.len() as i64;
             rest = days.iter().filter(|d| d.is_rest).count() as i64;
-            done = days.iter().filter(|d| d.checked).count() as i64;
+            done = days.iter().filter(|d| d.checked && !d.is_rest).count() as i64;
             if let Some(t) = days.iter().find(|d| d.date == today) {
                 today_in_plan = true;
                 today_done = t.checked;
@@ -232,7 +232,7 @@ pub fn get_goal_detail(conn: &Connection, goal_id: i64, today: &str, upcoming_li
         d.start_date = Some(v.start);
         d.end_date = Some(v.end);
         d.total = days.len() as i64;
-        d.done = days.iter().filter(|x| x.checked).count() as i64;
+        d.done = days.iter().filter(|x| x.checked && !x.is_rest).count() as i64;
         d.rest = days.iter().filter(|x| x.is_rest).count() as i64;
         d.today = days.iter().find(|x| x.date == today).cloned();
         // 休息日不计漏打（与统计/提醒一致：休息日不要求打卡）
@@ -243,19 +243,19 @@ pub fn get_goal_detail(conn: &Connection, goal_id: i64, today: &str, upcoming_li
 }
 
 /// 校验某天是否允许打卡，返回 (日期, 是否已打卡)
-fn check_day(conn: &Connection, plan_day_id: i64) -> R<(String, bool)> {
-    let row: Option<(String, String, String, Option<i64>)> = conn
+fn check_day(conn: &Connection, plan_day_id: i64) -> R<(String, bool, bool)> {
+    let row: Option<(String, String, String, Option<i64>, bool)> = conn
         .query_row(
-            "SELECT d.date, v.status, g.status, c.id FROM plan_days d
+            "SELECT d.date, v.status, g.status, c.id, d.is_rest FROM plan_days d
              JOIN plan_versions v ON v.id = d.plan_version_id
              JOIN goals g ON g.id = v.goal_id
              LEFT JOIN checkins c ON c.plan_day_id = d.id WHERE d.id = ?1",
             [plan_day_id],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get::<_, i64>(4)? != 0)),
         )
         .optional()
         .map_err(e)?;
-    let (date, vstatus, gstatus, cid) = row.ok_or("找不到这一天的计划")?;
+    let (date, vstatus, gstatus, cid, is_rest) = row.ok_or("找不到这一天的计划")?;
     if gstatus == "archived" {
         return Err("目标已归档，只能查看，不能打卡".into());
     }
@@ -264,7 +264,7 @@ fn check_day(conn: &Connection, plan_day_id: i64) -> R<(String, bool)> {
         "archived" => return Err("这是归档的旧版本，只能查看，不能打卡".into()),
         _ => {}
     }
-    Ok((date, cid.is_some()))
+    Ok((date, cid.is_some(), is_rest))
 }
 
 fn insert_checkin(conn: &Connection, id: i64, date: &str, kind: &str, now: i64) -> R<()> {
@@ -278,7 +278,10 @@ fn insert_checkin(conn: &Connection, id: i64, date: &str, kind: &str, now: i64) 
 
 /// 给今天打卡
 pub fn check_in(conn: &Connection, plan_day_id: i64, today: &str, now: i64) -> R<()> {
-    let (date, done) = check_day(conn, plan_day_id)?;
+    let (date, done, is_rest) = check_day(conn, plan_day_id)?;
+    if is_rest {
+        return Err("休息日不用打卡".into());
+    }
     if date.as_str() > today {
         return Err(format!("{date} 还没到，未来的日子不能提前打卡"));
     }
@@ -293,7 +296,10 @@ pub fn check_in(conn: &Connection, plan_day_id: i64, today: &str, now: i64) -> R
 
 /// 补打过去漏掉的日子
 pub fn make_up_check_in(conn: &Connection, plan_day_id: i64, today: &str, now: i64) -> R<()> {
-    let (date, done) = check_day(conn, plan_day_id)?;
+    let (date, done, is_rest) = check_day(conn, plan_day_id)?;
+    if is_rest {
+        return Err("休息日不用补打".into());
+    }
     if date.as_str() >= today {
         return Err("只能补打今天以前的日子".into());
     }
@@ -305,7 +311,7 @@ pub fn make_up_check_in(conn: &Connection, plan_day_id: i64, today: &str, now: i
 
 /// 取消打卡（打卡/补打都可撤销）
 pub fn undo_check_in(conn: &Connection, plan_day_id: i64) -> R<()> {
-    let (_, done) = check_day(conn, plan_day_id)?;
+    let (_, done, _) = check_day(conn, plan_day_id)?;
     if !done {
         return Err("这一天还没打卡，无需取消".into());
     }
@@ -472,6 +478,7 @@ pub fn factory_reset(conn: &mut Connection) -> R<()> {
          DELETE FROM goal_reminders;
          DELETE FROM checkins;
          DELETE FROM weekly_reviews;
+         DELETE FROM final_reviews;
          DELETE FROM chat_messages;
          DELETE FROM chat_sessions;
          DELETE FROM plan_days;
@@ -481,7 +488,7 @@ pub fn factory_reset(conn: &mut Connection) -> R<()> {
          DELETE FROM weather_cache;
          DELETE FROM settings;
          DELETE FROM sqlite_sequence WHERE name IN
-           ('plan_templates','goal_reminders','checkins','weekly_reviews','chat_messages','chat_sessions','plan_days','plan_versions','goals');",
+           ('plan_templates','goal_reminders','checkins','weekly_reviews','final_reviews','chat_messages','chat_sessions','plan_days','plan_versions','goals');",
     )
     .map_err(e)?;
     tx.commit().map_err(e)?;
@@ -601,7 +608,13 @@ mod tests {
         crate::review::save_review(&conn, id, "2026-10-12", &crate::review::ReviewText::default(), "2026-10-14", 1).unwrap();
         crate::reminder::save_goal_reminders(&conn, id, true, &["20:00".into()], 1).unwrap();
         crate::reminder::mark_sent(&conn, "goal:1:20:00", "2026-10-14", 1).unwrap();
+        conn.execute(
+            "INSERT INTO final_reviews (goal_id, done, due, missed, longest_streak, went_well, hard, next_plan, created_at, updated_at) VALUES (?1, 1, 1, 0, 1, 'a', '', '', 2, 2)",
+            [id],
+        ).unwrap();
         factory_reset(&mut conn).unwrap();
+        let nfr: i64 = conn.query_row("SELECT COUNT(*) FROM final_reviews", [], |r| r.get(0)).unwrap();
+        assert_eq!(nfr, 0);
         for t in ["goal_reminders", "reminder_log", "weekly_reviews", "goals", "plan_versions", "plan_days", "checkins", "chat_sessions", "chat_messages", "settings"] {
             let n: i64 = conn.query_row(&format!("SELECT COUNT(*) FROM {t}"), [], |r| r.get(0)).unwrap();
             assert_eq!(n, 0, "{t} 没清空");
