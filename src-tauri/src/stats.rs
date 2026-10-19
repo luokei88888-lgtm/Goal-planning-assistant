@@ -118,11 +118,11 @@ fn sum(agg: &BTreeMap<NaiveDate, DayAgg>, from: NaiveDate, to: NaiveDate) -> (i6
 }
 
 pub fn get_stats(conn: &Connection, goal_filter: Option<i64>, today: &str) -> R<Stats> {
-    // 只统计进行中的目标：已完成、已归档的计划和打卡全部不计（回到进行中后重新计入）
+    // 只统计进行中的目标：已完成、已归档的计划和打卡默认不计（回到进行中后重新计入）
     let t = parse_date(today)?;
-    // 例外：单独查询某个已完成目标（详情页完成总结用）时计入该目标；下拉选项仍只列进行中
+    // 例外：单独查询某个已完成/已归档目标（详情完成卡、结项最终总结）时计入该目标；列表仍只列进行中
     let mut st = conn
-        .prepare("SELECT id, title, icon, status FROM goals WHERE status = 'active' OR (status = 'completed' AND id = ?1) ORDER BY id")
+        .prepare("SELECT id, title, icon, status FROM goals WHERE status = 'active' OR (status IN ('completed','archived') AND id = ?1) ORDER BY id")
         .map_err(e)?;
     let goals = st
         .query_map([goal_filter.unwrap_or(-1)], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?, r.get::<_, String>(3)?)))
@@ -316,7 +316,10 @@ mod tests {
         assert_eq!(s.month_rate, Some(1.0));
         assert_eq!(s.heatmap.iter().find(|h| h.date == "2026-10-13").unwrap().level, 4);
         let s2 = get_stats(&c, Some(g2), today).unwrap();
-        assert!(s2.ranking.is_empty() && s2.total_checkins == 0, "筛选归档目标也没有数据");
+        assert_eq!(s2.ranking.len(), 1, "archived goal filter returns that goal for final review KPI");
+        assert_eq!(s2.ranking[0].id, g2);
+        assert!(s2.ranking[0].due > 0, "archived filter still has due days");
+        assert!(s2.goals.iter().all(|x| x.id != g2), "dropdown still excludes archived");
 
         // 全部归档 → 空
         crate::service::archive_goal(&mut c, g, 11).unwrap();

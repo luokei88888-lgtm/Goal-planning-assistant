@@ -410,6 +410,9 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
             </button>
           )}
           <button type="button" className="gd-btn" title="周复盘" onClick={onReview}><CalendarCheck size={16} /><span className="gd-lbl">周复盘</span></button>
+          {d.status === "archived" && finalRv && (
+            <button type="button" className="gd-btn" title="查看最终总结" onClick={onFinalReview}><ClipboardPen size={16} /><span className="gd-lbl">最终总结</span></button>
+          )}
           <button type="button" className="gd-btn" title="把当前方案存为模板" onClick={saveTpl}><BookmarkPlus size={16} /><span className="gd-lbl">存为模板</span></button>
           {!ro && <button type="button" className="gd-btn primary" title="改方案" onClick={onRevise}><RefreshCw size={16} /><span className="gd-lbl">改方案</span></button>}
           {d.status === "archived" && (
@@ -431,6 +434,18 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
       {okMsg && <div className="ok-line">{okMsg}</div>}
       {showRem && <ReminderModal goalId={goalId} title={d.title} onClose={() => setShowRem(false)} onSaved={(r) => { setRem(r); setShowRem(false); }} />}
       {showVers && <VersionsModal goalId={goalId} onClose={() => setShowVers(false)} />}
+
+      {d.status === "archived" && finalRv && (finalRv.went_well || finalRv.hard || finalRv.next_plan || finalRv.ai_comment) && (
+        <section className="fr-card-summary glass" style={{ margin: "0 0 12px" }}>
+          {finalRv.went_well && <div className="fr-card-line"><span>做得好</span>{finalRv.went_well}</div>}
+          {finalRv.hard && <div className="fr-card-line"><span>卡在哪</span>{finalRv.hard}</div>}
+          {finalRv.next_plan && <div className="fr-card-line"><span>下次改</span>{finalRv.next_plan}</div>}
+          {finalRv.ai_comment && <div className="fr-card-ai"><Bot size={16} />{finalRv.ai_comment}</div>}
+          <button type="button" className="ghost-btn neon-cyan fr-entry" onClick={onFinalReview}>
+            <ClipboardPen size={18} />查看最终总结
+          </button>
+        </section>
+      )}
 
       <section className={`today-card ${d.status === "completed" ? "completed" : ""}`}>
         {d.status === "completed" ? (

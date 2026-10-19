@@ -144,7 +144,7 @@ fn compute_view(conn: &Connection, goal_id: i64, today: &str) -> R<FinalView> {
         goal_id,
         goal_title,
         status: status.clone(),
-        readonly: status == "archived",
+        readonly: status != "completed",
         start_date: v.as_ref().map(|x| x.start.clone()),
         end_date: v.as_ref().map(|x| x.end.clone()),
         done,
@@ -156,7 +156,7 @@ fn compute_view(conn: &Connection, goal_id: i64, today: &str) -> R<FinalView> {
     })
 }
 
-/// 结项页数据；进行中也可读（用于调试），但保存时要求已完成。
+/// 结项页数据；非 completed 只读（进行中/归档可看），仅 completed 可写。
 pub fn final_view(conn: &Connection, goal_id: i64, today: &str) -> R<FinalView> {
     compute_view(conn, goal_id, today)
 }
@@ -365,6 +365,7 @@ mod tests {
         let mut conn = Connection::open_in_memory().unwrap();
         crate::db::migrate(&conn).unwrap();
         let id = import_sample(&mut conn, "2026-10-14", 0).unwrap();
+        assert!(final_view(&conn, id, "2026-10-14").unwrap().readonly, "进行中结项页应只读");
         let err = save_final_review(&conn, id, &ReviewText::default(), "2026-10-14", 1).unwrap_err();
         assert!(err.contains("还没结束"), "{err}");
 
@@ -392,10 +393,14 @@ mod tests {
             3,
         )
         .unwrap();
+        let before = final_view(&conn, id, "2026-11-20").unwrap();
+        assert!(before.due > 0);
         archive_goal(&mut conn, id, 4).unwrap();
         let v = final_view(&conn, id, "2026-11-20").unwrap();
         assert!(v.readonly);
         assert!(v.review.is_some());
+        assert_eq!(v.due, before.due, "归档后行动日 due 不应丢");
+        assert_eq!(v.longest_streak, before.longest_streak, "归档后最长连续不应被 get_stats 算成 0");
         let err = save_final_review(&conn, id, &ReviewText::default(), "2026-11-20", 5).unwrap_err();
         assert!(err.contains("归档"), "{err}");
     }
