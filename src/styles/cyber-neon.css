@@ -1104,9 +1104,6 @@ html[data-theme="neu"] .pink-text, html[data-theme="neu"] .day-note-del { color:
 /* #11 统计 KPI：中等宽度用 auto-fit，不留空格 */
 .kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 960px) { .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.kpi .kpi-sub { font-size: 12px; line-height: 1.45; margin-top: -2px; }
-.kpi .kpi-sub { word-break: keep-all; overflow-wrap: anywhere; }
-.kpi .kpi-sub em { font-style: normal; }
 .kpi-row { grid-auto-rows: 1fr; }
 /* 主题确认弹窗 */
 .confirm-msg { margin: 0; line-height: 1.6; white-space: pre-wrap; }
@@ -1141,7 +1138,6 @@ html[data-theme="neu"] .pink-text, html[data-theme="neu"] .day-note-del { color:
 .status-pill .st-text { white-space: normal; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.3; font-size: 12px; letter-spacing: 0; }
 html[data-theme="brutal"] .status-pill { padding: 12px 10px; gap: 8px; }
 html[data-theme="brutal"] .status-pill .st-text { font-weight: 600; font-size: 11.5px; }
-.kpi .kpi-sub em.nw { white-space: nowrap; }
 /* 主题列表 4 个：宽 1x4、窄 2x2，不出现半行 */
 .theme-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 960px) { .theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
