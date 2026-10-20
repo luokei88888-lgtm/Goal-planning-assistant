@@ -134,7 +134,7 @@ pub const UI_THEMES: [&str; 7] = ["glass", "bento", "brutal", "clay", "neu", "in
 
 /// 界面主题，默认玻璃拟态；存在 settings 表中（恢复出厂会清空，备份会包含）
 pub fn ui_theme(conn: &Connection) -> R<String> {
-    Ok(get_setting(conn, "ui_theme")?.filter(|v| UI_THEMES.contains(&v.as_str())).unwrap_or_else(|| "glass".into()))
+    Ok(get_setting(conn, "ui_theme")?.filter(|v| UI_THEMES.contains(&v.as_str())).unwrap_or_else(|| "clay".into()))
 }
 
 pub fn set_ui_theme(conn: &Connection, v: &str) -> R<String> {
@@ -371,12 +371,12 @@ mod tests {
     fn ui_theme_default_and_set() {
         let c = Connection::open_in_memory().unwrap();
         crate::db::migrate(&c).unwrap();
-        assert_eq!(ui_theme(&c).unwrap(), "glass");
+        assert_eq!(ui_theme(&c).unwrap(), "clay");
         assert_eq!(set_ui_theme(&c, "ink").unwrap(), "ink");
         assert_eq!(ui_theme(&c).unwrap(), "ink");
         assert!(set_ui_theme(&c, "bad").is_err());
         set_setting(&c, "ui_theme", "zzz").unwrap();
-        assert_eq!(ui_theme(&c).unwrap(), "glass");
+        assert_eq!(ui_theme(&c).unwrap(), "clay");
     }
 
     #[test]
