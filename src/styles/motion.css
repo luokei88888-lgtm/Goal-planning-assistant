@@ -56,12 +56,6 @@ html[data-theme="neu"] button:active:not(:disabled):not(.nav-hl):not(.seg-hl) { 
 
 /* 6. 统计 */
 .kpi { position: relative; }
-.kpi-ring { position: absolute; right: 12px; top: 12px; width: 44px; height: 44px; transform: rotate(-90deg); }
-.kpi-ring circle { fill: none; stroke-width: 5; }
-.kpi-ring .bg { stroke: rgba(var(--k-255-255-255), .1); }
-.kpi-ring .fg { stroke: var(--cyan); stroke-linecap: round; transition: stroke-dashoffset 900ms var(--e); }
-html:not([data-theme="neon"]) .kpi-ring .bg { stroke: var(--t-bar-bg, rgba(0,0,0,.1)); }
-html:not([data-theme="neon"]) .kpi-ring .fg { stroke: var(--t-accent, var(--cyan)); }
 .trend-bar { transform-box: fill-box; transform-origin: 50% 100%; animation: m-rise 300ms var(--e) backwards; animation-delay: calc(100ms + var(--i, 0) * 60ms); }
 .trend-line, .trend-dot, .trend-val { animation: m-fade 400ms ease backwards; animation-delay: 560ms; }
 .hm-grid .hm-cell { animation: m-lit 200ms ease backwards; animation-delay: calc(200ms + var(--i, 0) * 8ms); }
@@ -103,4 +97,3 @@ html[data-motion="reduce"] .rank-item:hover, html[data-motion="reduce"] .theme-c
 /* 窗口最小化 / 托盘：暂停一切动画 */
 html[data-paused] *, html[data-paused] *::before, html[data-paused] *::after { animation-play-state: paused !important; }
 .checkin-btn .undo-hint { opacity: .55; margin-left: -10px; }
-.kpi.has-ring { position: relative; }

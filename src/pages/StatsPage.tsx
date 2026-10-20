@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRoll } from "../lib/motion";
-import { ChartColumn, Flame, Trophy, CircleCheck, CalendarRange, TrendingUp, Grid3x3, ListOrdered, Target } from "lucide-react";
+import { ChartColumn, Flame, Trophy, CircleCheck, CalendarRange, CalendarCheck, TrendingUp, Grid3x3, ListOrdered, Target } from "lucide-react";
 import { NeonSelect } from "../components/NeonSelect";
 import { getStats, md, type Stats, type WeekPoint } from "../lib/tauri";
 
@@ -14,22 +14,9 @@ function PctNum({ r }: { r: number | null }) {
   const n = useRoll(r === null ? 0 : Math.round(r * 100), 800, true);
   return <>{r === null ? "—" : `${n}%`}</>;
 }
-/** 完成率圆环：挂载后从 0 画到真实比例 */
-function Ring({ r }: { r: number | null }) {
-  const C = 2 * Math.PI * 18;
-  const [p, setP] = useState(0);
-  useEffect(() => { const t = requestAnimationFrame(() => requestAnimationFrame(() => setP(r ?? 0))); return () => cancelAnimationFrame(t); }, [r]);
-  return (
-    <svg className="kpi-ring" viewBox="0 0 44 44" aria-hidden="true">
-      <circle className="bg" cx="22" cy="22" r="18" />
-      <circle className="fg" cx="22" cy="22" r="18" strokeDasharray={C} strokeDashoffset={C * (1 - Math.min(1, Math.max(0, p)))} />
-    </svg>
-  );
-}
-
 /** 近 8 周完成率折线 + 柱，纯 SVG */
 function TrendChart({ data }: { data: WeekPoint[] }) {
-  const W = 560, H = 200, L = 36, R = 12, T = 16, B = 34;
+  const W = 560, H = 214, L = 36, R = 12, T = 30, B = 34;
   const iw = W - L - R, ih = H - T - B;
   const step = iw / data.length;
   const x = (i: number) => L + step * i + step / 2;
@@ -75,7 +62,7 @@ function TrendChart({ data }: { data: WeekPoint[] }) {
       {pts.map((p, i) => p && (
         <g key={i}>
           <circle cx={p[0]} cy={p[1]} r="4.5" className="trend-dot" />
-          <text x={p[0]} y={p[1] - 10} className="trend-val" textAnchor="middle">{pct(data[i].rate)}</text>
+          <text x={p[0]} y={p[1] - 12} className="trend-val" textAnchor="middle">{pct(data[i].rate)}</text>
         </g>
       ))}
     </svg>
@@ -95,11 +82,17 @@ function Heatmap({ cells }: { cells: Stats["heatmap"] }) {
       <div className="hm-wrap" style={{ ["--weeks" as string]: weeks.length }}>
         <span />
         <div className="hm-months">
-          {weeks.map((w, i) => {
-            const first = w[0].date;
-            const show = i === 0 || first.slice(5, 7) !== weeks[i - 1][0].date.slice(5, 7);
-            return <span key={i}>{show ? `${Number(first.slice(5, 7))}月` : ""}</span>;
-          })}
+          {(() => {
+            // 月份标签：换月的那一列显示；与上一个标签间隔不足 3 列时跳过，避免「4月 5月」挤在一起
+            let last = -99;
+            return weeks.map((w, i) => {
+              const first = w[0].date;
+              const change = i === 0 || first.slice(5, 7) !== weeks[i - 1][0].date.slice(5, 7);
+              const show = change && i - last >= 3 && !(i === 0 && weeks[1] && weeks.slice(1, 3).some((x) => x[0].date.slice(5, 7) !== first.slice(5, 7)));
+              if (show) last = i;
+              return <span key={i}>{show ? `${Number(first.slice(5, 7))}月` : ""}</span>;
+            });
+          })()}
         </div>
         <div className="hm-wd">{WD.map((d, i) => <span key={i}>{d}</span>)}</div>
         <div className="hm-grid">
@@ -158,7 +151,7 @@ export function StatsPage({ onOpenGoal }: { onOpenGoal: (id: number) => void }) 
             <div className="kpi glass neon-cyan"><Trophy size={22} className="cyan-text" /><b><Num v={s.longest_streak} /><small>天</small></b><span>最长连续</span></div>
             <div className="kpi glass neon-cyan"><CircleCheck size={22} className="cyan-text" /><b><Num v={s.total_checkins} /><small>次</small></b><span>总打卡</span></div>
             <div className="kpi glass neon-pink"><CalendarRange size={22} className="pink-text" /><b><PctNum r={s.week.rate} /></b><span>本周完成率 · {s.week.done}/{s.week.due}</span></div>
-            <div className="kpi glass neon-cyan has-ring"><Ring r={s.month_rate} /><CalendarRange size={22} className="cyan-text" /><b><PctNum r={s.month_rate} /></b><span>本月完成率 · {s.month_done}/{s.month_due}</span></div>
+            <div className="kpi glass neon-cyan"><CalendarCheck size={22} className="cyan-text" /><b><PctNum r={s.month_rate} /></b><span>本月完成率 · {s.month_done}/{s.month_due}</span></div>
           </div>
           <div className="muted small stats-note">休息日不计入完成率，也不会打断连续；今天还没打卡不算中断。多个目标时，当天所有安排都完成才算连续。只统计进行中的目标，已完成和已归档的不计入。</div>
           <section className="glass neon-cyan panel">
