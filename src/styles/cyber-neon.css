@@ -1045,3 +1045,14 @@ button.status-pill:hover { border-color: rgba(var(--k-0-240-255),.6); box-shadow
 .day-row.has-note-line > .day-note-row.compact { padding-top: 8px; border-top: 1px dashed color-mix(in srgb, currentColor 16%, transparent); }
 .day-row.has-note-line .day-note-ops { margin-left: auto; }
 .day-row.has-note-line .day-note-label { font-size: 14px; opacity: .85; }
+
+/* 已完成过去日列表（默认折叠） */
+.past-toggle { display: flex; align-items: center; gap: 8px; width: 100%; background: transparent; border: none; padding: 0; cursor: pointer; text-align: left; color: rgb(var(--k-46-232-138)); font: inherit; }
+.past-toggle .past-count { font-size: 14px; font-weight: 400; }
+.past-toggle .past-chev { margin-left: 4px; transition: transform .2s; transform: rotate(-90deg); opacity: .7; }
+.past-toggle.open .past-chev { transform: none; }
+.past-row .day-tag { color: var(--muted); }
+.past-st { flex-shrink: 0; font-size: 14px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; line-height: 1.4; opacity: .85; }
+.past-st.s-done { color: rgb(var(--k-46-232-138)); }
+.past-st.s-makeup { color: var(--cyan); }
+.past-st.s-rest { color: var(--muted); }

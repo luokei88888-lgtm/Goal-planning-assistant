@@ -66,6 +66,8 @@ pub struct GoalDetail {
     pub today: Option<DayItem>,
     pub missed: Vec<DayItem>,
     pub upcoming: Vec<DayItem>,
+    /// 今天以前已打卡（含补打）或休息的日子，倒序（最近在前）
+    pub past: Vec<DayItem>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -223,6 +225,7 @@ pub fn get_goal_detail(conn: &Connection, goal_id: i64, today: &str, upcoming_li
         today: None,
         missed: vec![],
         upcoming: vec![],
+        past: vec![],
     };
     if let Some(v) = v {
         let days = days_of(conn, v.id)?;
@@ -237,6 +240,7 @@ pub fn get_goal_detail(conn: &Connection, goal_id: i64, today: &str, upcoming_li
         d.today = days.iter().find(|x| x.date == today).cloned();
         // 休息日不计漏打（与统计/提醒一致：休息日不要求打卡）
         d.missed = days.iter().filter(|x| x.date.as_str() < today && !x.checked && !x.is_rest).cloned().collect();
+        d.past = days.iter().rev().filter(|x| x.date.as_str() < today && (x.checked || x.is_rest)).cloned().collect();
         d.upcoming = days.iter().filter(|x| x.date.as_str() > today).take(upcoming_limit).cloned().collect();
     }
     Ok(d)
@@ -669,6 +673,22 @@ mod tests {
 
         // 清空
         assert_eq!(save_day_note(&conn, today, "   ", "2026-10-14").unwrap(), "");
+    }
+
+    #[test]
+    fn past_days_listed_desc_with_notes() {
+        let (conn, id) = setup();
+        let d = get_goal_detail(&conn, id, "2026-10-14", 5).unwrap();
+        assert!(d.past.iter().all(|x| x.date.as_str() < "2026-10-14" && (x.checked || x.is_rest)));
+        let m = d.missed[0].id;
+        make_up_check_in(&conn, m, "2026-10-14", 1).unwrap();
+        save_day_note(&conn, m, "补打备注", "2026-10-14").unwrap();
+        let d = get_goal_detail(&conn, id, "2026-10-14", 5).unwrap();
+        let p = d.past.iter().find(|x| x.id == m).expect("made-up day in past");
+        assert_eq!(p.kind.as_deref(), Some("make_up"));
+        assert_eq!(p.note, "补打备注");
+        assert!(d.past.windows(2).all(|w| w[0].date >= w[1].date));
+        assert!(d.past.iter().all(|x| x.date != "2026-10-14"));
     }
 
     #[test]
