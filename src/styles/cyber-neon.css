@@ -1047,15 +1047,18 @@ button.status-pill:hover { border-color: rgba(var(--k-0-240-255),.6); box-shadow
 .day-row.has-note-line .day-note-label { font-size: 14px; opacity: .85; }
 
 /* 已完成过去日列表（默认折叠） */
-.past-toggle { display: flex; align-items: center; gap: 8px; width: 100%; background: transparent; border: none; padding: 0; cursor: pointer; text-align: left; color: rgb(var(--k-46-232-138)); font: inherit; }
-.past-toggle .past-count { font-size: 14px; font-weight: 400; }
-.past-toggle .past-chev { margin-left: 4px; transition: transform .2s; transform: rotate(-90deg); opacity: .7; }
-.past-toggle.open .past-chev { transform: none; }
 .past-row .day-tag { color: var(--muted); }
-.past-st { flex-shrink: 0; font-size: 14px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; line-height: 1.4; opacity: .85; }
-.past-st.s-done { color: rgb(var(--k-46-232-138)); }
-.past-st.s-makeup { color: var(--cyan); }
-.past-st.s-rest { color: var(--muted); }
+/* 今日卡底栏「已完成 N 天」入口：与漏打/接下来同排同字号 */
+.foot-link { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: none; background: transparent; font: inherit; color: var(--muted); cursor: pointer; white-space: nowrap; transition: color .15s, text-shadow .15s; }
+.foot-link:hover { color: var(--cyan); }
+.foot-link.on { color: var(--cyan); font-weight: 600; }
+html[data-theme="neon"] .foot-link:hover, html[data-theme="neon"] .foot-link.on, html[data-theme="glass"] .foot-link.on { text-shadow: 0 0 8px rgba(var(--k-34-230-255), .45); }
+/* 分区标题右侧「收起」 */
+.section-fold { margin-left: auto; padding: 0 2px; border: none; background: transparent; font: inherit; font-size: 14px; font-weight: 400; color: var(--muted); cursor: pointer; }
+.section-fold:hover { color: var(--cyan); }
+/* 过去日状态标签：与「明日解锁」同类的淡色小字 */
+.past-st { flex-shrink: 0; }
+.past-st.s-makeup { color: var(--cyan); opacity: .85; }
 
 /* ===== 视觉审查修复（2026-10-20） ===== */
 /* #1 #6 详情页：已完成状态或矮窗口时整页滚动，列表不再被今日卡挤成 0 高 */
@@ -1106,7 +1109,6 @@ html[data-theme="neu"] .pink-text, html[data-theme="neu"] .day-note-del { color:
 html[data-theme="ink"] .cl-btn, html[data-theme="ink"] .cl-btn.primary { letter-spacing: 1px; }
 /* 主题确认弹窗 */
 .confirm-msg { margin: 0; line-height: 1.6; white-space: pre-wrap; }
-html:not([data-theme="neon"]):not([data-theme="glass"]) .past-st.s-done, html:not([data-theme="neon"]):not([data-theme="glass"]) .past-toggle { color: #17703d; }
 /* 周复盘历史行：标题省略，右侧时间不被挤出 */
 .rv-scroll .day-row > .day-task { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rv-scroll .day-row > .day-meta { flex-shrink: 0; }

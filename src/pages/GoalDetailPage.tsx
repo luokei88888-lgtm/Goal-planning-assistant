@@ -4,7 +4,7 @@ import { useRoll, confetti, celebrateToast } from "../lib/motion";
 import { TimePicker } from "../components/TimePicker";
 import { createPortal } from "react-dom";
 import { Activity, RefreshCw, CalendarCheck, History, X, CircleCheck, CloudRain, Sparkles, Lock, ChevronLeft, Undo2, Archive, Coffee, ArchiveRestore, Bell, BellOff, Plus, Trash2, BookmarkPlus, Trophy, ClipboardPen, Bot } from "lucide-react";
-import { CircleCheck as PastIc, ChevronDown as PastDown } from "lucide-react";
+import { CircleCheck as PastIc } from "lucide-react";
 import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, saveDayNote, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce, todayStr, getFinalReview, type FinalReview } from "../lib/tauri";
 
 function ReminderModal({ goalId, title, onClose, onSaved }: { goalId: number; title: string; onClose: () => void; onSaved: (r: GoalReminders) => void }) {
@@ -343,7 +343,23 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
     catch (e) { setError(String(e)); }
   };
 
-  const [pastOpen, setPastOpen] = useState(false);
+  const [pastOpenS, setPastOpen] = useState<boolean | null>(null);
+  const pastRef = useRef<HTMLDivElement>(null);
+  const togglePast = () => {
+    const next = !pastOpen;
+    setPastOpen(next);
+  };
+  // 用户点开时把分区滚到可视区（默认展开不滚）
+  // 只滚动最近的滚动容器（scrollIntoView 会连带滚动 body，导致整个窗口上移）
+  useEffect(() => {
+    const el = pastRef.current;
+    if (!pastOpenS || !el) return;
+    let sc = el.parentElement;
+    while (sc && !(/(auto|scroll)/.test(getComputedStyle(sc).overflowY) && sc.scrollHeight > sc.clientHeight)) sc = sc.parentElement;
+    if (!sc) return;
+    const top = sc.scrollTop + el.getBoundingClientRect().top - sc.getBoundingClientRect().top - 12;
+    sc.scrollTo({ top, behavior: "smooth" });
+  }, [pastOpenS]);
   const [sum, setSum] = useState<{ done: number; due: number; rate: number | null; longest: number } | null>(null);
   const [finalRv, setFinalRv] = useState<FinalReview | null>(null);
   const load = useCallback(() => getGoalDetail(goalId).then((x) => {
@@ -395,6 +411,9 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
   const pct = rawPct;
   const t = d.today;
   const ro = d.readonly;
+  // 已完成 / 归档（今日卡换成总结或无今日）时默认展开，保证可达
+  const pastOpen = pastOpenS ?? d.status !== "active";
+  const pastN = d.past?.length ?? 0;
 
   return (
     <div className="page detail">
@@ -527,6 +546,10 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
               <div className="progress-foot">
                 <span className="pink-text"><CloudRain size={20} />漏打 {d.missed.length}</span>
                 <span className="divider" />
+                {pastN > 0 && <>
+                  <button type="button" className={`foot-link past-link${pastOpen ? " on" : ""}`} aria-expanded={pastOpen} onClick={togglePast}>已完成 {pastN} 天</button>
+                  <span className="divider" />
+                </>}
                 <span className="muted">{d.upcoming.length ? `接下来 ${d.upcoming.length} 天` : "没有后续日程"}</span>
                 <DayNoteWriteLink />
               </div>
@@ -545,6 +568,10 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
             <div className="progress-foot">
               <span className="pink-text"><CloudRain size={20} />漏打 {d.missed.length}</span>
               <span className="divider" />
+              {pastN > 0 && <>
+                <button type="button" className={`foot-link past-link${pastOpen ? " on" : ""}`} aria-expanded={pastOpen} onClick={togglePast}>已完成 {pastN} 天</button>
+                <span className="divider" />
+              </>}
               <span className="muted">{d.upcoming.length ? `接下来 ${d.upcoming.length} 天` : "没有后续日程"}</span>
             </div>
           </div>
@@ -568,18 +595,18 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
             ))}
           </>
         )}
-        {(d.past?.length ?? 0) > 0 && (
+        {pastN > 0 && pastOpen && (
           <>
-            <button type="button" className={`section-label past-toggle${pastOpen ? " open" : ""}`} aria-expanded={pastOpen} onClick={() => setPastOpen((v) => !v)}>
-              <PastIc size={18} />已完成 <span className="muted past-count">{d.past!.length} 天</span><PastDown size={16} className="past-chev" />
-            </button>
-            {pastOpen && d.past!.map((p) => (
+            <div className="section-label cyan-text" ref={pastRef}><PastIc size={18} />已完成
+              <button type="button" className="section-fold" onClick={() => setPastOpen(false)}>收起</button>
+            </div>
+            {d.past!.map((p) => (
               <div key={p.id} className="day-row-wrap">
                 <div className="day-row has-note-line glass past-row">
                   <span className="day-tag">第{p.day_index}天</span>
                   <span className="day-task">{p.title}</span>
                   <span className="day-meta">{md(p.date)}</span>
-                  <span className={`past-st ${p.is_rest && !p.checked ? "s-rest" : p.kind === "make_up" ? "s-makeup" : "s-done"}`}>{p.is_rest && !p.checked ? "休息" : p.kind === "make_up" ? "补打" : "已完成"}</span>
+                  <span className={`day-meta past-st ${p.is_rest && !p.checked ? "s-rest" : p.kind === "make_up" ? "s-makeup" : "s-done"}`}>{p.is_rest && !p.checked ? "休息" : p.kind === "make_up" ? "补打" : "已完成"}</span>
                   <DayNoteEditor dayId={p.id} note={p.note || ""} readonly={ro} compact onSaved={() => { setError(""); void load(); }} onError={(e) => { setOkMsg(""); setError(e); }} />
                 </div>
               </div>
