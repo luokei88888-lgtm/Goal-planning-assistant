@@ -1035,3 +1035,13 @@ button.status-pill:hover { border-color: rgba(var(--k-0-240-255),.6); box-shadow
 .fr-card-line { display: grid; grid-template-columns: 64px 1fr; gap: 8px; }
 .fr-card-line span { color: var(--muted); }
 .fr-card-ai { display: flex; gap: 8px; color: var(--pink); white-space: pre-wrap; line-height: 1.55; }
+
+/* 漏打等日行：备注作为卡片内第二行 */
+.day-row.has-note-line { flex-wrap: wrap; row-gap: 8px; min-width: 0; box-sizing: border-box; max-width: 100%; }
+.day-row.has-note-line > .day-task { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.day-row.has-note-line > .day-note-row.compact,
+.day-row.has-note-line > .day-note-box.compact,
+.day-row.has-note-line > .day-note-idle.compact { flex: 0 0 100%; width: 100%; max-width: 100%; margin: 0; min-width: 0; }
+.day-row.has-note-line > .day-note-row.compact { padding-top: 8px; border-top: 1px dashed color-mix(in srgb, currentColor 16%, transparent); }
+.day-row.has-note-line .day-note-ops { margin-left: auto; }
+.day-row.has-note-line .day-note-label { font-size: 14px; opacity: .85; }

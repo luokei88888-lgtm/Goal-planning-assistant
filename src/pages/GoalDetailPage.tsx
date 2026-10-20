@@ -554,13 +554,13 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
             <div className="section-label pink-text"><CloudRain size={18} />漏打</div>
             {d.missed.map((m) => (
               <div key={m.id} className="day-row-wrap" style={{ ["--i" as string]: 0 }}>
-              <div className="day-row glass neon-pink-soft">
+              <div className="day-row has-note-line glass neon-pink-soft">
                 <span className="day-tag pink-text">第{m.day_index}天</span>
                 <span className="day-task">{m.title}</span>
                 <span className="day-meta">{md(m.date)}</span>
                 {!ro && <button type="button" className="mini-btn" disabled={busy} onClick={() => run(() => makeUpCheckIn(m.id))}>补打</button>}
+                <DayNoteEditor dayId={m.id} note={m.note || ""} readonly={ro} compact onSaved={() => { setError(""); void load(); }} onError={(e) => { setOkMsg(""); setError(e); }} />
               </div>
-              <DayNoteEditor dayId={m.id} note={m.note || ""} readonly={ro} compact onSaved={() => { setError(""); void load(); }} onError={(e) => { setOkMsg(""); setError(e); }} />
             </div>
             ))}
           </>
