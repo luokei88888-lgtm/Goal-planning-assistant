@@ -1,5 +1,7 @@
 # 目标计划助手
 
+[![最新版本](https://img.shields.io/github/v/release/luokei88888-lgtm/Goal-planning-assistant?label=%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC)](https://github.com/luokei88888-lgtm/Goal-planning-assistant/releases/latest) [![下载量](https://img.shields.io/github/downloads/luokei88888-lgtm/Goal-planning-assistant/total?label=%E4%B8%8B%E8%BD%BD)](https://github.com/luokei88888-lgtm/Goal-planning-assistant/releases/latest) ![平台](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-blue)
+
 一个本地运行的 Windows 桌面应用：先和 AI 助手把目标聊清楚，确认后自动生成「目标 + 按天计划」，之后每天打卡、每周复盘，计划结束时写最终总结，用统计页看坚持情况。数据全部存在本机，离线也能查看和打卡。
 
 基于 Tauri 2 + React 19 + Rust + SQLite。
@@ -64,7 +66,13 @@
 
 ## 下载安装
 
-目前还没有发布预编译安装包（GitHub Releases 暂无版本），请按下文「开发 → 打包」自行构建，得到 NSIS 安装包 `目标计划助手_0.1.0_x64-setup.exe` 后双击安装。仅支持 Windows 10/11（需要 WebView2，Windows 11 自带）。
+1. 打开 [Releases 最新版本](https://github.com/luokei88888-lgtm/Goal-planning-assistant/releases/latest)，下载 `GoalPlanAssistant_<版本>_x64-setup.exe`（可用页面上的 SHA256 校验）。
+2. 双击安装。安装包暂未做代码签名，可能弹出 Windows SmartScreen「Windows 已保护你的电脑」：点「更多信息」→「仍要运行」。
+3. 安装完成后从开始菜单打开「目标计划助手」，到「设置 → 模型配置」填入 API Key 即可和助手对话（不填也能打卡、统计）。
+
+系统要求：Windows 10/11 x64，需要 Microsoft Edge WebView2（Windows 11 自带；Windows 10 缺少时安装程序会自动引导安装）。
+
+想自己构建安装包，见下文「开发 → 打包」。
 
 ## 配置模型与 API Key
 
