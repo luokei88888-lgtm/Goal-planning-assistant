@@ -55,7 +55,9 @@ export function GoalsPage({ onOpenGoal, onTemplates }: { onOpenGoal: (id: number
           <div className="goal-sub">
             {arch && <span className="tag cyan">已归档 · 只读</span>}
             {done && <span className="done-badge"><Trophy size={13} />已完成</span>}
-            行动日 <b className={`${tone}-text`}>{g.done}/{due}</b>{g.rest > 0 ? ` · 休息 ${g.rest}` : ""}{done && <> · 完成率 <b className="green-text">{rate}%</b></>}
+            <span className="gs-seg">行动日 <b className={`${tone}-text`}>{g.done}/{due}</b>{g.rest > 0 || done ? " ·" : ""}</span>{" "}
+            {g.rest > 0 && <><span className="gs-seg">休息 {g.rest}{done ? " ·" : ""}</span>{" "}</>}
+            {done && <span className="gs-seg">完成率 <b className="green-text">{rate}%</b></span>}
           </div>
         </div>
         <div className="goal-right">
