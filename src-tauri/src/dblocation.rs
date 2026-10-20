@@ -305,7 +305,7 @@ mod tests {
     fn seed(app: &Path, title: &str) {
         let c = open_current(app).unwrap();
         c.execute("INSERT INTO goals (title, created_at, updated_at) VALUES (?1, 1, 1)", [title]).unwrap();
-        crate::chat::set_setting(&c, "ui_theme", "ink").unwrap();
+        crate::chat::set_setting(&c, "ui_theme", "neu").unwrap();
     }
 
     fn titles(app: &Path) -> Vec<String> {

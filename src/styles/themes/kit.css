@@ -115,9 +115,9 @@ html:not([data-theme="neon"]) .close-desc { color: var(--text); }
 html:not([data-theme="neon"]) .wc-city svg { color: var(--t-accent); }
 html:not([data-theme="neon"]) .wc-city { color: var(--muted); }
 /* 浅色主题：AQI 六级用深一档的颜色保证对比度 */
-html:is([data-theme="bento"],[data-theme="brutal"],[data-theme="clay"],[data-theme="neu"],[data-theme="ink"]) .aqi-l1 { color: #15803d !important; }
-html:is([data-theme="bento"],[data-theme="brutal"],[data-theme="clay"],[data-theme="neu"],[data-theme="ink"]) .aqi-l2 { color: #a16207 !important; }
-html:is([data-theme="bento"],[data-theme="brutal"],[data-theme="clay"],[data-theme="neu"],[data-theme="ink"]) .aqi-l3 { color: #c2410c !important; }
-html:is([data-theme="bento"],[data-theme="brutal"],[data-theme="clay"],[data-theme="neu"],[data-theme="ink"]) .aqi-l4 { color: #dc2626 !important; }
-html:is([data-theme="bento"],[data-theme="brutal"],[data-theme="clay"],[data-theme="neu"],[data-theme="ink"]) .aqi-l5 { color: #7e22ce !important; }
-html:is([data-theme="bento"],[data-theme="brutal"],[data-theme="clay"],[data-theme="neu"],[data-theme="ink"]) .aqi-l6 { color: #881337 !important; }
+html:is([data-theme="brutal"],[data-theme="clay"],[data-theme="neu"]) .aqi-l1 { color: #15803d !important; }
+html:is([data-theme="brutal"],[data-theme="clay"],[data-theme="neu"]) .aqi-l2 { color: #a16207 !important; }
+html:is([data-theme="brutal"],[data-theme="clay"],[data-theme="neu"]) .aqi-l3 { color: #c2410c !important; }
+html:is([data-theme="brutal"],[data-theme="clay"],[data-theme="neu"]) .aqi-l4 { color: #dc2626 !important; }
+html:is([data-theme="brutal"],[data-theme="clay"],[data-theme="neu"]) .aqi-l5 { color: #7e22ce !important; }
+html:is([data-theme="brutal"],[data-theme="clay"],[data-theme="neu"]) .aqi-l6 { color: #881337 !important; }

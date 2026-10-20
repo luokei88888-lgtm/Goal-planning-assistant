@@ -130,9 +130,9 @@ pub fn set_close_action(conn: &Connection, v: &str) -> R<String> {
     Ok(v.into())
 }
 
-pub const UI_THEMES: [&str; 7] = ["glass", "bento", "brutal", "clay", "neu", "ink", "neon"];
+pub const UI_THEMES: [&str; 4] = ["glass", "brutal", "clay", "neu"];
 
-/// 界面主题，默认玻璃拟态；存在 settings 表中（恢复出厂会清空，备份会包含）
+/// 界面主题，默认黏土风；不在列表里的旧值（如已移除的 bento/ink/neon）回退到 clay；存在 settings 表中（恢复出厂会清空，备份会包含）
 pub fn ui_theme(conn: &Connection) -> R<String> {
     Ok(get_setting(conn, "ui_theme")?.filter(|v| UI_THEMES.contains(&v.as_str())).unwrap_or_else(|| "clay".into()))
 }
@@ -372,11 +372,17 @@ mod tests {
         let c = Connection::open_in_memory().unwrap();
         crate::db::migrate(&c).unwrap();
         assert_eq!(ui_theme(&c).unwrap(), "clay");
-        assert_eq!(set_ui_theme(&c, "ink").unwrap(), "ink");
-        assert_eq!(ui_theme(&c).unwrap(), "ink");
+        assert_eq!(set_ui_theme(&c, "neu").unwrap(), "neu");
+        assert_eq!(ui_theme(&c).unwrap(), "neu");
         assert!(set_ui_theme(&c, "bad").is_err());
         set_setting(&c, "ui_theme", "zzz").unwrap();
         assert_eq!(ui_theme(&c).unwrap(), "clay");
+        // 已移除的旧主题（旧库 / 备份导入）回退到默认 clay，且不能再设置
+        for old in ["bento", "ink", "neon"] {
+            set_setting(&c, "ui_theme", old).unwrap();
+            assert_eq!(ui_theme(&c).unwrap(), "clay");
+            assert!(set_ui_theme(&c, old).is_err());
+        }
     }
 
     #[test]

@@ -13,8 +13,6 @@
 @keyframes m-grow { from { transform: scaleX(0); } }
 @keyframes m-lit { from { opacity: .12; } }
 @keyframes m-drift { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(8%, 6%) scale(1.12); } 100% { transform: translate(-6%, -4%) scale(.95); } }
-@keyframes m-breathe { 0%, 100% { opacity: .62; } 50% { opacity: 1; } }
-@keyframes m-ink { 0% { opacity: .55; transform: scale(1) translate(0, 0); } 50% { opacity: .9; transform: scale(1.08) translate(-2%, 1%); } 100% { opacity: .6; transform: scale(1.02) translate(2%, -1%); } }
 
 /* 1. 页面切换：内容淡入上移（只用 backwards，结束后不残留 transform，避免影响弹窗定位） */
 .main > .page { animation: m-pin 280ms var(--e) backwards; }
@@ -76,16 +74,10 @@ html[data-theme="neu"] button:active:not(:disabled):not(.nav-hl):not(.seg-hl) { 
   border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
 .celebrate-toast.on { opacity: 1; transform: translateX(-50%) translateY(6px); }
 html:not([data-theme="neon"]) .celebrate-toast { background: var(--t-modal-bg) !important; border: var(--t-panel-border) !important; box-shadow: var(--t-modal-shadow) !important; }
-html[data-theme="neon"] .celebrate-toast { background: rgba(14,16,34,.92); border-color: var(--cyan); box-shadow: 0 0 16px rgba(var(--k-34-230-255), .45); }
 
 /* 8. 主题专属 */
 html[data-theme="glass"] .bg-glow { will-change: transform; animation: m-drift 22s ease-in-out infinite alternate; }
 html[data-theme="glass"] .bg-glow.g2 { animation-duration: 28s; animation-delay: -9s; }
-html[data-theme="neon"] .today-card::before { animation: m-breathe 4.5s ease-in-out infinite; }
-html[data-theme="neon"] .nav-hl { animation: m-breathe 4.5s ease-in-out infinite; animation-delay: -2s; }
-html[data-theme="ink"] .app-bg::after { content: ""; position: absolute; inset: -10%; pointer-events: none; z-index: 0;
-  background: radial-gradient(28% 32% at 82% 18%, rgba(42,38,34,.10), transparent 70%), radial-gradient(30% 28% at 14% 86%, rgba(42,38,34,.08), transparent 70%);
-  will-change: transform, opacity; animation: m-ink 26s ease-in-out infinite alternate; }
 
 /* 9. 减少动画：基本瞬间完成；背景停止 */
 html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-motion="reduce"] *::after {

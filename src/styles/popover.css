@@ -2,7 +2,7 @@
 @keyframes pop-in { from { opacity: 0; transform: translateY(-4px) scale(.97); } to { opacity: 1; transform: none; } }
 .pop-solid { z-index: 10000 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
   opacity: 1; animation: pop-in 160ms var(--e, cubic-bezier(.2,.8,.2,1)) both !important; transform-origin: 50% 0; }
-html[data-theme="neon"] .pop-solid, html:not([data-theme]) .pop-solid { background: rgb(var(--k-8-10-24)) !important; }
+html:not([data-theme]) .pop-solid { background: rgb(var(--k-8-10-24)) !important; }
 html:not([data-theme="neon"]) .pop-solid { background: var(--t-modal-solid, #fff) !important; border: var(--t-panel-border) !important;
   box-shadow: var(--t-modal-shadow) !important; color: var(--text) !important; }
 html:not([data-theme="neon"]) .mp-menu { border-radius: min(var(--t-radius, 12px), 16px) !important; }

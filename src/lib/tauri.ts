@@ -218,7 +218,7 @@ export const fetchModels = (provider: string, baseUrl: string) => invoke<string[
 // ---------- 关闭窗口行为 ----------
 export type CloseAction = "ask" | "tray" | "exit";
 export const getCloseAction = () => invoke<CloseAction>("get_close_action");
-export type UiTheme = "glass" | "bento" | "brutal" | "clay" | "neu" | "ink" | "neon";
+export type UiTheme = "glass" | "brutal" | "clay" | "neu";
 export const getUiTheme = () => invoke<UiTheme>("get_ui_theme");
 export const setUiTheme = (theme: UiTheme) => invoke<UiTheme>("set_ui_theme", { theme });
 export const setCloseAction = (action: CloseAction) => invoke<CloseAction>("set_close_action", { action });
