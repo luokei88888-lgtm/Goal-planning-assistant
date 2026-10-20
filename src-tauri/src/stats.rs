@@ -56,9 +56,10 @@ pub struct Stats {
     pub longest_streak: i64,
     pub total_checkins: i64,
     pub week: WeekPoint,
-    pub month_done: i64,
-    pub month_due: i64,
-    pub month_rate: Option<f64>,
+    /// 全程：从计划开始到今天（休息日不计；今天未打卡不算未完成）
+    pub overall_done: i64,
+    pub overall_due: i64,
+    pub overall_rate: Option<f64>,
     pub trend: Vec<WeekPoint>,
     pub heatmap: Vec<HeatCell>,
     pub ranking: Vec<GoalRank>,
@@ -182,8 +183,9 @@ pub fn get_stats(conn: &Connection, goal_filter: Option<i64>, today: &str) -> R<
     };
     let week = week_of(monday);
     let trend = (0..8).rev().map(|i| week_of(monday - Duration::weeks(i))).collect();
-    let m1 = t.with_day(1).unwrap();
-    let (month_done, month_due) = sum(&all, m1, t);
+    let (overall_done, overall_due) = all.range(..=t).fold((0, 0), |(d, u), (day, a)| {
+        if *day == t { (d + a.done, u + a.done) } else { (d + a.done, u + a.due) }
+    });
 
     // 热力图：26 周，周一对齐，到本周日
     let start = monday - Duration::weeks(25);
@@ -211,9 +213,9 @@ pub fn get_stats(conn: &Connection, goal_filter: Option<i64>, today: &str) -> R<
         longest_streak,
         total_checkins,
         week,
-        month_done,
-        month_due,
-        month_rate: rate(month_done, month_due),
+        overall_done,
+        overall_due,
+        overall_rate: rate(overall_done, overall_due),
         trend,
         heatmap,
         ranking,
@@ -270,8 +272,8 @@ mod tests {
         assert_eq!(s.total_checkins, 7);
         // 本周 10-12..10-14：due 3，done 2
         assert_eq!((s.week.done, s.week.due), (2, 3));
-        // 本月：10-05..10-14 去掉休息日 9 天，完成 7
-        assert_eq!((s.month_done, s.month_due), (7, 9));
+        // 全程：10-05..10-13 去掉休息日 8 天，完成 7；今天未打卡不计入
+        assert_eq!((s.overall_done, s.overall_due), (7, 8));
         assert_eq!(s.trend.len(), 8);
         assert_eq!(s.trend[6].week_start, "2026-10-05");
         assert_eq!((s.trend[6].done, s.trend[6].due), (5, 6));
@@ -303,7 +305,7 @@ mod tests {
         let s = get_stats(&c, Some(g), today).unwrap();
         assert_eq!((s.current_streak, s.ranking.len(), s.goals.len()), (9, 1, 2));
         let s = get_stats(&c, Some(g2), today).unwrap();
-        assert_eq!((s.current_streak, s.month_rate), (0, Some(0.0)));
+        assert_eq!((s.current_streak, s.overall_done, s.overall_due), (0, 0, 1), "单目标只算该目标");
 
         // 归档 g2：所有统计都不再计入，下拉也不列出
         crate::service::archive_goal(&mut c, g2, 10).unwrap();
@@ -313,7 +315,7 @@ mod tests {
         assert_eq!((s.ranking.len(), s.goals.len()), (1, 1));
         assert!(s.goals.iter().all(|x| x.id != g2) && s.ranking.iter().all(|x| x.id != g2));
         assert_eq!((s.week.done, s.week.due), (3, 3));
-        assert_eq!(s.month_rate, Some(1.0));
+        assert_eq!((s.overall_done, s.overall_due, s.overall_rate), (9, 9, Some(1.0)), "今天已打卡计入");
         assert_eq!(s.heatmap.iter().find(|h| h.date == "2026-10-13").unwrap().level, 4);
         let s2 = get_stats(&c, Some(g2), today).unwrap();
         assert_eq!(s2.ranking.len(), 1, "archived goal filter returns that goal for final review KPI");
@@ -325,7 +327,7 @@ mod tests {
         crate::service::archive_goal(&mut c, g, 11).unwrap();
         let s = get_stats(&c, None, today).unwrap();
         assert!(s.goals.is_empty() && s.ranking.is_empty());
-        assert_eq!((s.total_checkins, s.current_streak, s.month_rate), (0, 0, None));
+        assert_eq!((s.total_checkins, s.current_streak, s.overall_rate), (0, 0, None));
 
         // 取消归档后重新计入
         crate::service::restore_goal(&mut c, g, 12).unwrap();

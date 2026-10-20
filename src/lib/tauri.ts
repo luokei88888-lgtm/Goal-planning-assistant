@@ -180,7 +180,7 @@ export type HeatCell = { date: string; done: number; due: number; level: number;
 export type GoalRank = { id: number; title: string; icon: string; status: string; done: number; due: number; rate: number | null; streak: number };
 export type Stats = {
   today: string; current_streak: number; longest_streak: number; total_checkins: number; week: WeekPoint;
-  month_done: number; month_due: number; month_rate: number | null; trend: WeekPoint[]; heatmap: HeatCell[];
+  overall_done: number; overall_due: number; overall_rate: number | null; trend: WeekPoint[]; heatmap: HeatCell[];
   ranking: GoalRank[]; goals: { id: number; title: string; status: string }[];
 };
 export const getStats = (goalId?: number | null) => invoke<Stats>("get_stats", { goalId: goalId ?? null });

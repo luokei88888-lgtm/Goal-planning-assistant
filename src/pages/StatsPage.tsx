@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRoll } from "../lib/motion";
-import { ChartColumn, Flame, Trophy, CircleCheck, CalendarRange, CalendarCheck, TrendingUp, Grid3x3, ListOrdered, Target } from "lucide-react";
+import { ChartColumn, Flame, Trophy, CircleCheck, CalendarRange, TrendingUp, Grid3x3, ListOrdered, Target } from "lucide-react";
 import { NeonSelect } from "../components/NeonSelect";
 import { getStats, md, type Stats, type WeekPoint } from "../lib/tauri";
 
@@ -150,10 +150,11 @@ export function StatsPage({ onOpenGoal }: { onOpenGoal: (id: number) => void }) 
             <div className="kpi glass neon-pink"><Flame size={22} className="pink-text" /><b><Num v={s.current_streak} /><small>天</small></b><span>当前连续</span></div>
             <div className="kpi glass neon-cyan"><Trophy size={22} className="cyan-text" /><b><Num v={s.longest_streak} /><small>天</small></b><span>最长连续</span></div>
             <div className="kpi glass neon-cyan"><CircleCheck size={22} className="cyan-text" /><b><Num v={s.total_checkins} /><small>次</small></b><span>总打卡</span></div>
-            <div className="kpi glass neon-pink"><CalendarRange size={22} className="pink-text" /><b><PctNum r={s.week.rate} /></b><span>本周完成率 · {s.week.done}/{s.week.due}</span></div>
-            <div className="kpi glass neon-cyan"><CalendarCheck size={22} className="cyan-text" /><b><PctNum r={s.month_rate} /></b><span>本月完成率 · {s.month_done}/{s.month_due}</span></div>
+            <div className="kpi glass neon-pink"><CalendarRange size={22} className="pink-text" /><b><PctNum r={s.overall_rate} /></b>
+              <span>全程完成率</span>
+              <span className="kpi-sub"><em>已完成 {s.overall_done} / {s.overall_due} 个行动日{s.week.due > 0 ? " ·" : ""}</em>{s.week.due > 0 && <> <em className="nw">本周 {pct(s.week.rate)}</em></>}</span></div>
           </div>
-          <div className="muted small stats-note">休息日不计入完成率，也不会打断连续；今天还没打卡不算中断。多个目标时，当天所有安排都完成才算连续。只统计进行中的目标，已完成和已归档的不计入。</div>
+          <div className="muted small stats-note">全程完成率 = 从计划开始到今天已完成的行动日占比；休息日不计入，今天还没打卡不算未完成，也不算连续中断。多个目标时，当天所有安排都完成才算连续。只统计进行中的目标，已完成和已归档的不计入。</div>
           <section className="glass neon-cyan panel">
             <div className="panel-title cyan-text"><TrendingUp size={20} />近 8 周完成率</div>
             <TrendChart key={goal ?? "all"} data={s.trend} />
