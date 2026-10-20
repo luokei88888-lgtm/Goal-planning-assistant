@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { askConfirm } from "../components/ConfirmDialog";
 import { useSlider } from "../lib/motion";
 import { Flame, NotebookPen, BookOpen, Target, CalendarDays, Circle, CircleCheck, Sparkles, Download, Archive, ArchiveRestore, LayoutTemplate, Trophy, type LucideIcon } from "lucide-react";
 import { WeatherCard } from "../components/WeatherCard";
@@ -27,7 +28,7 @@ export function GoalsPage({ onOpenGoal, onTemplates }: { onOpenGoal: (id: number
   const goals = lists[tab];
   const cnt = (k: keyof typeof lists) => (lists[k] ? ` ${lists[k]!.length}` : "");
   const restore = async (id: number) => {
-    if (!confirm("恢复后最新版本重新生效：计划还没结束的回到「进行中」，已过最后一天的显示为「已完成」。确定恢复？")) return;
+    if (!(await askConfirm("恢复后最新版本重新生效：计划还没结束的回到「进行中」，已过最后一天的显示为「已完成」。确定恢复？", { title: "恢复目标", ok: "恢复" }))) return;
     setBusy(true);
     try { await restoreGoal(id); await load(); } catch (e) { setError(String(e)); } finally { setBusy(false); }
   };

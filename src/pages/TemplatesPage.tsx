@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { askConfirm } from "../components/ConfirmDialog";
 import { LayoutTemplate, ChevronLeft, Eye, Play, Bot, Trash2, Flame, NotebookPen, BookOpen, Target, CalendarDays, type LucideIcon } from "lucide-react";
 import { listTemplates, applyTemplate, deleteTemplate, todayStr, shiftDate, md, type Template } from "../lib/tauri";
 import { PlanModal } from "./ChatPage";
@@ -22,12 +23,12 @@ export function TemplatesPage({ onBack, onOpenGoal, onAdjust }: { onBack: () => 
   useEffect(() => { load(); }, []);
 
   const apply = async (t: Template, date = start) => {
-    if (!confirm(`用模板「${t.title}」新建目标，从 ${md(date)} 开始，共 ${t.days_count} 天？`)) return;
+    if (!(await askConfirm(`用模板「${t.title}」新建目标，从 ${md(date)} 开始，共 ${t.days_count} 天？`, { title: "用模板新建目标", ok: "开始" }))) return;
     setBusy(true); setErr("");
     try { onOpenGoal(await applyTemplate(t.id, date)); } catch (e) { setErr(String(e)); } finally { setBusy(false); }
   };
   const remove = async (t: Template) => {
-    if (!confirm(`删除自建模板「${t.title}」？已经用它建的目标不受影响。`)) return;
+    if (!(await askConfirm(`删除自建模板「${t.title}」？已经用它建的目标不受影响。`, { title: "删除模板", ok: "删除", danger: true }))) return;
     try { await deleteTemplate(t.id); load(); } catch (e) { setErr(String(e)); }
   };
 

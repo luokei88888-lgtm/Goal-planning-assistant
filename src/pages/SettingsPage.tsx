@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { askConfirm } from "../components/ConfirmDialog";
 import { createPortal } from "react-dom";
 import { KeyRound, Cpu, Link2, Activity, Save, PlugZap, Trash2, ShieldCheck, TriangleAlert, X, Download, Upload, DatabaseBackup, BellRing, Moon, Power, PanelBottomClose, Building2, ExternalLink, CloudSun, Search, MapPin, ChevronDown, Loader, Check, Palette, Database, FolderInput, FolderOpen, House, Sparkles } from "lucide-react";
 import { NeonSelect } from "../components/NeonSelect";
@@ -456,7 +457,7 @@ export function SettingsPage({ onReset }: { onReset: (text?: string) => void }) 
   };
   const save = () => run(async () => { apply(await saveSettings(provider, model, baseUrl, apiKey.trim() || undefined)); setApiKey(""); return `已保存，当前使用 ${pv?.name ?? provider}`; });
   const test = () => run(async () => { apply(await saveSettings(provider, model, baseUrl, apiKey.trim() || undefined)); setApiKey(""); return testConnection(); });
-  const del = () => { if (confirm(`确定删除 ${pv?.name ?? ""} 的 API Key？`)) run(async () => { await deleteApiKey(provider); const v = await getSettings(); setSv(v); return "已删除 API Key"; }); };
+  const del = async () => { if (await askConfirm(`确定删除 ${pv?.name ?? ""} 的 API Key？`, { title: "删除 API Key", ok: "删除", danger: true })) run(async () => { await deleteApiKey(provider); const v = await getSettings(); setSv(v); return "已删除 API Key"; }); };
 
   return (
     <div className="page settings">

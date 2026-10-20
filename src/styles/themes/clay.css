@@ -9,9 +9,9 @@ html[data-theme="clay"] {
   --t-btn-bg: #ffffff; --t-btn-border: none; --t-btn-shadow: 5px 5px 10px rgba(110,100,200,.2), inset -3px -3px 6px rgba(110,100,200,.1), inset 3px 3px 6px #fff;
   --t-btn-radius: 18px; --t-btn-hover: #f6f5ff;
   --t-seg-bg: #e3e5fb;
-  --t-pri-bg: #7c6cf0; --t-pri-color: #ffffff; --t-pri-border: none;
+  --t-pri-bg: #6a5ae0; --t-pri-color: #ffffff; --t-pri-border: none;
   --t-pri-shadow: 6px 6px 14px rgba(124,108,240,.4), inset -4px -4px 8px rgba(60,40,180,.35), inset 4px 4px 8px rgba(255,255,255,.35); --t-pri-radius: 22px;
-  --t-accent: #7c6cf0; --t-danger: #f0517a;
+  --t-accent: #6a5ae0; --t-danger: #f0517a;
   --t-nav-on-bg: #dcdcff; --t-nav-on-color: #4b3cc9; --t-nav-on-border: none; --t-nav-on-shadow: inset 4px 4px 8px rgba(110,100,200,.2), inset -4px -4px 8px #fff; --t-nav-on-radius: 20px;
   --t-bar-bg: #ecebff; --t-bar-shadow: inset 2px 2px 5px rgba(110,100,200,.25); --t-bar-h: 12px; --t-fill: #ff6fa5; --t-fill-green: #3cc79a;
   --t-input-bg: #f4f4ff; --t-input-border: none; --t-input-shadow: inset 3px 3px 7px rgba(110,100,200,.2), inset -3px -3px 7px #fff;

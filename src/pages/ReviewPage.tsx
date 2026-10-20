@@ -88,7 +88,7 @@ export function ReviewPage({ goalId, onBack, onRevise, onGoSettings }: Props) {
                 <div className="rv-ic">
                   {c.state === "done" ? <Check size={20} /> : c.state === "missed" ? <X size={20} /> : c.state === "today" ? <Sun size={18} /> : c.is_rest ? <Coffee size={16} /> : "·"}
                 </div>
-                <div className="rv-dt">{md(c.date)}</div>
+                <div className="rv-dt">{Number(c.date.slice(5, 7))}/{Number(c.date.slice(8, 10))}</div>
                 <div className="rv-tt">{c.title ?? "—"}</div>
               </div>
             ))}

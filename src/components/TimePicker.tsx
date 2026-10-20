@@ -33,7 +33,7 @@ export function TimePicker({ value, onChange, disabled, className, presets = ["2
   const pop = useRef<HTMLDivElement>(null);
   const hCol = useRef<HTMLDivElement>(null);
   const mCol = useRef<HTMLDivElement>(null);
-  const { pos } = useAnchoredPos(btn, open, { estH: 300, width: 232, align: "right" });
+  const { pos } = useAnchoredPos(btn, open, { estH: 300, width: 232, align: "left" });
   const [h, m] = parseTime(value) ?? [21, 0];
   const mins = STEP_MIN.includes(m) ? STEP_MIN : [...STEP_MIN, m].sort((a, b) => a - b);
 

@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { askConfirm } from "../components/ConfirmDialog";
 import { useRoll, confetti, celebrateToast } from "../lib/motion";
 import { TimePicker } from "../components/TimePicker";
 import { createPortal } from "react-dom";
@@ -92,7 +93,7 @@ function useDayNoteApi(
   };
   const remove = async () => {
     if (readonly || busy || !note.trim()) return;
-    if (!confirm("确定删除这条备注？")) return;
+    if (!(await askConfirm("确定删除这条备注？", { title: "删除备注", ok: "删除", danger: true }))) return;
     setBusy(true);
     try {
       await saveDayNote(dayId, "");
@@ -419,13 +420,13 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
           {!ro && <button type="button" className="gd-btn primary" title="改方案" onClick={onRevise}><RefreshCw size={16} /><span className="gd-lbl">改方案</span></button>}
           {d.status === "archived" && (
             <button type="button" className="gd-btn primary" title="恢复目标" disabled={busy}
-              onClick={() => { if (confirm("恢复后目标回到「进行中」，最新版本重新生效，可以继续打卡。确定恢复？")) run(() => restoreGoal(goalId)); }}>
+              onClick={async () => { if (await askConfirm("恢复后目标回到「进行中」，最新版本重新生效，可以继续打卡。确定恢复？", { title: "恢复目标", ok: "恢复" })) run(() => restoreGoal(goalId)); }}>
               <ArchiveRestore size={16} /><span className="gd-lbl">恢复</span>
             </button>
           )}
           {!ro && (
             <button type="button" className="gd-btn weak gd-end" title="归档目标（只读保留记录）" disabled={busy}
-              onClick={() => { if (confirm("归档后只能查看、不能再打卡，打卡记录会保留。确定归档？")) run(async () => { await archiveGoal(goalId); onBack(); }); }}>
+              onClick={async () => { if (await askConfirm("归档后只能查看、不能再打卡，打卡记录会保留。确定归档？", { title: "归档目标", ok: "归档", danger: true })) run(async () => { await archiveGoal(goalId); onBack(); }); }}>
               <Archive size={16} /><span className="gd-lbl">归档</span>
             </button>
           )}
@@ -567,15 +568,6 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
             ))}
           </>
         )}
-        {d.upcoming.length > 0 && <div className="section-label cyan-text"><Sparkles size={18} />接下来</div>}
-        {d.upcoming.map((f, i) => (
-          <div key={f.id} className="day-row glass locked" style={{ ["--i" as string]: Math.min(i + 1, 10) }}>
-            <Lock size={18} />
-            <span className="day-tag">第{f.day_index}天</span>
-            <span className="day-task">{f.title}</span>
-            <span className="day-meta"><Lock size={16} />{unlockText(f.date)}</span>
-          </div>
-        ))}
         {(d.past?.length ?? 0) > 0 && (
           <>
             <button type="button" className={`section-label past-toggle${pastOpen ? " open" : ""}`} aria-expanded={pastOpen} onClick={() => setPastOpen((v) => !v)}>
@@ -594,6 +586,15 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
             ))}
           </>
         )}
+        {d.upcoming.length > 0 && <div className="section-label cyan-text"><Sparkles size={18} />接下来</div>}
+        {d.upcoming.map((f, i) => (
+          <div key={f.id} className="day-row glass locked" style={{ ["--i" as string]: Math.min(i + 1, 10) }}>
+            <Lock size={18} />
+            <span className="day-tag">第{f.day_index}天</span>
+            <span className="day-task">{f.title}</span>
+            <span className="day-meta"><Lock size={16} />{unlockText(f.date)}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

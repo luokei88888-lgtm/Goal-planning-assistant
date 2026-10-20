@@ -1056,3 +1056,57 @@ button.status-pill:hover { border-color: rgba(var(--k-0-240-255),.6); box-shadow
 .past-st.s-done { color: rgb(var(--k-46-232-138)); }
 .past-st.s-makeup { color: var(--cyan); }
 .past-st.s-rest { color: var(--muted); }
+
+/* ===== 视觉审查修复（2026-10-20） ===== */
+/* #1 #6 详情页：已完成状态或矮窗口时整页滚动，列表不再被今日卡挤成 0 高 */
+.page.detail:has(> .today-card.completed) { overflow-y: auto; }
+.page.detail:has(> .today-card.completed) > .scroll-area { flex: none; overflow: visible; }
+@media (max-height: 780px) {
+  .page.detail { overflow-y: auto; }
+  .page.detail > .scroll-area { flex: none; overflow: visible; }
+}
+@media (max-height: 640px) {
+  .today-card { padding-top: 12px; }
+  .today-task { font-size: 30px; margin: 4px 0 2px; }
+  .today-note { margin-bottom: 10px; }
+  .checkin-btn:not(.small):not(.fit) { font-size: 22px; padding: 10px 32px; min-width: 260px; gap: 16px; }
+  .progress-box { margin-top: 12px; }
+}
+/* #2 周复盘：三栏窄屏自动换行 */
+.rv-form { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.rv-dt { white-space: nowrap; }
+/* #3 聊天：长串/URL 在气泡内换行 */
+.row-user { min-width: 0; }
+.bubble-user { max-width: min(640px, 78%); min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+.bubble-ai, .bubble-ai .md, .md { min-width: 0; overflow-wrap: anywhere; }
+/* #4 详情标题：保底宽度，放不下时操作按钮换到下一行 */
+.detail .gd-title-row { min-width: min(100%, 400px); }
+.detail .gd-title { min-width: min(6em, 100%); flex-shrink: 1; }
+@container (max-width: 640px) { .detail .gd-title { font-size: 26px; } }
+/* #5 无备注时「＋ 写备注」行内靠右；有备注仍是卡片内第二行 */
+.day-row.has-note-line > .day-note-idle.compact { flex: none; width: auto; margin: 0; order: 1; }
+.day-row.has-note-line > .day-meta, .day-row.has-note-line > .mini-btn, .day-row.has-note-line > .past-st { order: 2; }
+.day-row.has-note-line > .day-note-row.compact, .day-row.has-note-line > .day-note-box.compact { order: 3; }
+.day-row.has-note-line > .day-note-idle.compact .day-note-write { font-size: 14px; }
+/* #8 最终总结日摘要：左列加宽不折行 */
+.fr-day { grid-template-columns: 22px minmax(190px, auto) 1fr auto; }
+.fr-day-meta { white-space: nowrap; }
+/* #9 今日卡内总结摘要左对齐 */
+.fr-card-summary { text-align: left; }
+/* #10 浅色主题强调色文字对比度 */
+.title-date { color: color-mix(in srgb, var(--cyan) 62%, var(--muted)); }
+html:not([data-theme="neon"]):not([data-theme="glass"]) .title-date { color: var(--muted); }
+html[data-theme="bento"] .pink-text, html[data-theme="bento"] .day-note-del { color: #c2410c; }
+html[data-theme="clay"] .pink-text, html[data-theme="clay"] .day-note-del { color: #c23a72; }
+html[data-theme="neu"] .pink-text, html[data-theme="neu"] .day-note-del { color: #b8305a; }
+/* #11 统计 KPI：中等宽度用 auto-fit，不留空格 */
+.kpi-row { display: flex; flex-wrap: wrap; }
+.kpi-row > * { flex: 1 1 160px; min-width: 0; }
+/* #12 ink：弹窗按钮字距统一 */
+html[data-theme="ink"] .cl-btn, html[data-theme="ink"] .cl-btn.primary { letter-spacing: 1px; }
+/* 主题确认弹窗 */
+.confirm-msg { margin: 0; line-height: 1.6; white-space: pre-wrap; }
+html:not([data-theme="neon"]):not([data-theme="glass"]) .past-st.s-done, html:not([data-theme="neon"]):not([data-theme="glass"]) .past-toggle { color: #17703d; }
+/* 周复盘历史行：标题省略，右侧时间不被挤出 */
+.rv-scroll .day-row > .day-task { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rv-scroll .day-row > .day-meta { flex-shrink: 0; }

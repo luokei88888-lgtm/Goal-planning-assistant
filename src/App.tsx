@@ -11,6 +11,7 @@ import { StatsPage } from "./pages/StatsPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { CloseDialog } from "./components/CloseDialog";
 import { DbMissingGuard } from "./components/DbDialogs";
+import { ConfirmHost } from "./components/ConfirmDialog";
 import "./styles/cyber-neon.css";
 import "./styles/themes/index.css";
 import "./styles/motion.css";
@@ -77,6 +78,7 @@ export default function App() {
       {page === "settings" && <SettingsPage onReset={onReset} />}
       {toast && <div className="toast">{toast}</div>}
       {askClose && <CloseDialog onClose={() => setAskClose(false)} />}
+      <ConfirmHost />
       <DbMissingGuard onFixed={() => onReset("已切换数据库位置")} />
     </AppShell>
   );
