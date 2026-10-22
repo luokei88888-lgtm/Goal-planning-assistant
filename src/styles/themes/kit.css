@@ -56,6 +56,13 @@ html:not([data-theme="neon"]) .close-modal, html:not([data-theme="neon"]) .nsel-
   background: var(--t-modal-bg) !important; border: var(--t-panel-border) !important; box-shadow: var(--t-modal-shadow) !important;
   color: var(--text) !important; backdrop-filter: var(--t-backdrop, none); }
 html:not([data-theme="neon"]) .modal-mask { background: var(--t-mask) !important; }
+html:not([data-theme="neon"]) .swap-modal {
+  background: var(--t-modal-bg) !important; border: var(--t-panel-border) !important;
+  box-shadow: var(--t-panel-shadow, var(--t-modal-shadow)) !important;
+  border-radius: var(--t-radius) !important; color: var(--text) !important;
+  backdrop-filter: var(--t-backdrop, none);
+}
+
 html:not([data-theme="neon"]) .neon-select option { background: var(--t-modal-solid, #fff); color: var(--text); }
 
 /* 次级按钮 / 控件 */

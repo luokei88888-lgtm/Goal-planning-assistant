@@ -26,26 +26,108 @@ html[data-theme="clay"] .kpi:nth-child(4n+3) { background: #fff1c4 !important; }
 html[data-theme="clay"] .kpi:nth-child(4n) { background: #dcdcff !important; }
 html[data-theme="clay"] .bubble-ai { background: #ffffff !important; }
 
-/* 换休：贴合黏土风圆角软钮 */
+/* 换休弹层：黏土大圆角 + 柔和浮雕，候选行干净，主按钮用主题紫 */
 html[data-theme="clay"] .swap-rest-btn {
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(120, 100, 90, 0.18);
-  box-shadow: 2px 2px 6px rgba(160, 140, 120, 0.18), inset 1px 1px 0 rgba(255,255,255,.6);
-  color: #6b5e56;
+  border-radius: 16px;
+  background: var(--t-btn-bg);
+  border: none;
+  box-shadow: var(--t-btn-shadow);
+  color: #5a4fcf;
+  font-weight: 800;
 }
 html[data-theme="clay"] .swap-rest-btn:hover:not(:disabled) {
-  color: #3d7ea6;
-  border-color: rgba(61, 126, 166, 0.35);
-  background: rgba(255, 255, 255, 0.75);
+  background: var(--t-btn-hover);
+  color: #4b3cc9;
+  border: none;
 }
-html[data-theme="clay"] button.plan-day.swap-cand:hover:not(:disabled) {
-  border-color: rgba(61, 126, 166, 0.28);
-  background: rgba(255, 255, 255, 0.45);
-  border-radius: 16px;
+
+html[data-theme="clay"] .swap-modal {
+  width: min(460px, 94vw);
+  max-height: min(72vh, 640px);
+  height: auto;
+  background: #f7f6ff !important;
+  border: none !important;
+  border-radius: 28px !important;
+  box-shadow:
+    10px 14px 28px rgba(110, 100, 200, 0.22),
+    inset -5px -5px 12px rgba(110, 100, 200, 0.08),
+    inset 5px 5px 12px rgba(255, 255, 255, 0.95) !important;
+  color: #3b3563 !important;
+  overflow: hidden;
 }
+html[data-theme="clay"] .swap-head { padding: 20px 20px 6px; }
+html[data-theme="clay"] .swap-head h2 {
+  font-size: 17px; color: #3b3563; letter-spacing: 0.3px;
+}
+html[data-theme="clay"] .swap-kicker {
+  color: #6a5ae0;
+  background: #e8e6ff;
+  border: none;
+  box-shadow: inset 2px 2px 4px rgba(110,100,200,.12), inset -2px -2px 4px #fff;
+}
+html[data-theme="clay"] .swap-today-pill {
+  margin: 6px 18px 14px;
+  padding: 10px 14px;
+  border-radius: 20px;
+  background: #e8e6ff;
+  border: none;
+  box-shadow: inset 3px 3px 6px rgba(110,100,200,.14), inset -3px -3px 6px #fff;
+  gap: 8px;
+}
+html[data-theme="clay"] .swap-today-pill.rest {
+  background: #fff4d6;
+  box-shadow: inset 3px 3px 6px rgba(180,140,40,.12), inset -3px -3px 6px #fff;
+}
+html[data-theme="clay"] .swap-today-label {
+  background: #6a5ae0; color: #fff;
+  box-shadow: 2px 2px 6px rgba(106,90,224,.35);
+}
+html[data-theme="clay"] .swap-today-pill.rest .swap-today-label {
+  background: #e6a800; color: #fff;
+}
+html[data-theme="clay"] .swap-today-main { color: #7a7499; }
+html[data-theme="clay"] .swap-today-title { color: #3b3563; }
+html[data-theme="clay"] .swap-today-pill em {
+  color: #9a6b00; border: none; background: #ffe9a8;
+}
+html[data-theme="clay"] .swap-list { padding: 0 14px 16px; gap: 10px; }
+html[data-theme="clay"] .swap-empty { color: #8a84a8; }
+html[data-theme="clay"] .swap-cand {
+  border: none;
+  border-radius: 20px;
+  padding: 14px 12px 14px 14px;
+  background: #ffffff;
+  box-shadow: 5px 5px 12px rgba(110,100,200,.14), inset -2px -2px 5px rgba(110,100,200,.06), inset 2px 2px 5px #fff;
+}
+html[data-theme="clay"] .swap-cand.rest {
+  background: #fffaf0;
+}
+html[data-theme="clay"] .swap-cand:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: #f3f1ff;
+  box-shadow: 7px 9px 18px rgba(110,100,200,.2), inset -2px -2px 5px rgba(110,100,200,.06), inset 2px 2px 5px #fff;
+  border: none;
+}
+html[data-theme="clay"] .swap-cand.rest:hover:not(:disabled) {
+  background: #fff6e0;
+}
+html[data-theme="clay"] .swap-cand-day { color: #6a5ae0; }
+html[data-theme="clay"] .swap-cand.rest .swap-cand-day { color: #c48900; }
+html[data-theme="clay"] .swap-cand-date { color: #9a94b0; }
+html[data-theme="clay"] .swap-cand-title { color: #3b3563; }
+html[data-theme="clay"] .swap-cand-title svg { color: #d4a017; }
+html[data-theme="clay"] .swap-cand-title em {
+  color: #9a6b00; border: none; background: #ffe9a8;
+}
+html[data-theme="clay"] .swap-cand-sum { color: #8f89a8; }
 html[data-theme="clay"] .swap-cand-go {
-  border-radius: 12px;
-  color: #3d7ea6;
-  border-color: rgba(61, 126, 166, 0.35);
+  color: #fff;
+  background: #6a5ae0;
+  border: none;
+  border-radius: 16px;
+  padding: 8px 16px;
+  box-shadow: 4px 4px 10px rgba(106,90,224,.38), inset -2px -2px 5px rgba(60,40,180,.28), inset 2px 2px 5px rgba(255,255,255,.28);
+}
+html[data-theme="clay"] .swap-cand:hover:not(:disabled) .swap-cand-go {
+  filter: brightness(1.05);
 }

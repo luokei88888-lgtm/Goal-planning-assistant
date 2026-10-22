@@ -289,41 +289,62 @@ function SwapRestModal({
       setBusy(false);
     }
   };
+  const summaryOf = (x: DayItem) => {
+    const d = (x.detail || "").trim();
+    if (d) return d.length > 42 ? `${d.slice(0, 42)}…` : d;
+    if (x.tasks?.length) {
+      const s = x.tasks.slice(0, 2).join(" · ");
+      return s.length > 42 ? `${s.slice(0, 42)}…` : s;
+    }
+    return "";
+  };
   return createPortal(
     <div className="modal-mask" onClick={onClose}>
-      <div className="plan-modal swap-modal" onClick={(e) => e.stopPropagation()}>
-        <header className="plan-head">
-          <div>
-            <div className="plan-kicker"><ArrowLeftRight size={16} />换休</div>
+      <div className="swap-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="换休">
+        <header className="swap-head">
+          <div className="swap-head-text">
+            <div className="swap-kicker"><ArrowLeftRight size={15} />换休</div>
             <h2>{today.is_rest ? "选一个行动日，和今天的休息对调" : "选一个休息日，和今天的安排对调"}</h2>
           </div>
-          <button type="button" className="icon-btn" title="关闭" onClick={onClose}><X size={20} /></button>
+          <button type="button" className="icon-btn" title="关闭" onClick={onClose}><X size={18} /></button>
         </header>
         {err && <div className="error-line">{err}</div>}
-        <div className="plan-meta">
-          <div><b>今天</b>{md(today.date)} · 第{today.day_index}天 · {today.title}{today.is_rest ? "（休息日）" : ""}</div>
+        <div className={`swap-today-pill${today.is_rest ? " rest" : ""}`}>
+          <span className="swap-today-label">今天</span>
+          <span className="swap-today-main">{md(today.date)} · 第{today.day_index}天</span>
+          <span className="swap-today-title">{today.title}</span>
+          {today.is_rest ? <em>休息日</em> : null}
         </div>
-        <div className="plan-body">
+        <div className="swap-list">
           {cands.length === 0 && !err && (
-            <div className="muted" style={{ padding: "24px 8px" }}>后面没有可对调的日子（需要「未打卡」且与今天休息/行动属性相反）。</div>
+            <div className="swap-empty">后面没有可对调的日子（需要「未打卡」且与今天休息/行动属性相反）。</div>
           )}
-          {cands.map((x) => (
-            <button
-              key={x.id}
-              type="button"
-              className={`plan-day swap-cand ${x.is_rest ? "rest" : ""}`}
-              disabled={busy}
-              onClick={() => void pick(x)}
-            >
-              <div className="pd-left"><div className="pd-n">第{x.day_index}天</div><div className="pd-date">{md(x.date)}</div></div>
-              <div className="pd-main">
-                <div className="pd-title">{x.is_rest && <Coffee size={15} />}{x.title}{x.is_rest && <em>休息日</em>}</div>
-                {x.detail && <div className="pd-detail">{x.detail}</div>}
-                {x.tasks && x.tasks.length > 0 && <ul>{x.tasks.map((tk, k) => <li key={k}>{tk}</li>)}</ul>}
-              </div>
-              <span className="swap-cand-go">对调</span>
-            </button>
-          ))}
+          {cands.map((x) => {
+            const sum = summaryOf(x);
+            return (
+              <button
+                key={x.id}
+                type="button"
+                className={`swap-cand${x.is_rest ? " rest" : " action"}`}
+                disabled={busy}
+                onClick={() => void pick(x)}
+              >
+                <div className="swap-cand-left">
+                  <span className="swap-cand-day">第{x.day_index}天</span>
+                  <span className="swap-cand-date">{md(x.date)}</span>
+                </div>
+                <div className="swap-cand-main">
+                  <div className="swap-cand-title">
+                    {x.is_rest ? <Coffee size={14} /> : null}
+                    <span>{x.title}</span>
+                    {x.is_rest ? <em>休息日</em> : null}
+                  </div>
+                  {sum ? <p className="swap-cand-sum">{sum}</p> : null}
+                </div>
+                <span className="swap-cand-go">对调</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>,
