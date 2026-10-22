@@ -25,7 +25,7 @@ html:not([data-theme="neon"]) .goal-card.completed { border-color: rgba(var(--t-
 html:not([data-theme="neon"]) .sidebar { background: var(--t-side-bg) !important; border: var(--t-side-border) !important;
   box-shadow: var(--t-side-shadow) !important; border-radius: var(--t-side-radius) !important; backdrop-filter: var(--t-backdrop, none); }
 html:not([data-theme="neon"]) .today-card { background: var(--t-hero-bg) !important; border: var(--t-panel-border) !important;
-  box-shadow: var(--t-panel-shadow) !important; backdrop-filter: var(--t-backdrop, none); }
+  box-shadow: var(--t-panel-shadow) !important; backdrop-filter: var(--t-backdrop, none); margin-bottom: 14px; overflow: hidden; }
 html:not([data-theme="neon"]) .today-card::before { display: none !important; }
 html:not([data-theme="neon"]) .detail-list-panel {
   background: var(--t-panel-bg) !important;

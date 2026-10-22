@@ -173,7 +173,7 @@ input { font: inherit; color: var(--text); }
 .ver-pill svg { color: var(--pink); }
 .ghost-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 18px; border-radius: 12px; font-size: 16px; background: rgba(var(--k-10-12-28), 0.6); }
 .ghost-btn:hover { filter: brightness(1.2); }
-.today-card { position: relative; border-radius: 20px; padding: 18px 30px 0; text-align: center; flex-shrink: 0;
+.today-card { position: relative; border-radius: 20px; padding: 18px 30px 18px; margin-bottom: 14px; text-align: center; flex-shrink: 0; overflow: hidden;
   background: linear-gradient(160deg, rgba(var(--k-20-22-50), 0.85), rgba(var(--k-16-10-36), 0.85));
   border: 2px solid transparent; background-clip: padding-box;
   box-shadow: 0 0 0 2px var(--cyan), 0 0 22px rgba(var(--k-34-230-255), 0.45), 0 0 40px rgba(var(--k-217-70-239), 0.35);
@@ -195,8 +195,8 @@ input { font: inherit; color: var(--text); }
 .checkin-btn.done { background: rgba(var(--k-34-230-255), 0.12); box-shadow: 0 0 0 1.5px var(--cyan), 0 0 16px rgba(var(--k-34-230-255),.4); font-size: 22px; color: var(--cyan); }
 .checkin-btn.small { min-width: 0; flex: 1; font-size: 20px; padding: 12px 20px; gap: 12px; border-radius: 12px; }
 .checkin-btn.fit { flex: none; align-self: flex-start; font-size: 16px; }
-.progress-box { margin: 18px -12px 0; padding: 12px 20px 0; border: 1px solid var(--line); border-bottom: none;
-  border-radius: 12px 12px 0 0; background: rgba(var(--k-6-8-20), 0.5); text-align: left; }
+.progress-box { margin: 18px 0 0; padding: 12px 20px 12px; border: 1px solid var(--line);
+  border-radius: 14px; background: rgba(var(--k-6-8-20), 0.5); text-align: left; }
 .progress-row { display: flex; justify-content: space-between; color: var(--cyan); font-size: 15px; margin-bottom: 10px; }
 .progress-cycle { font-size: 13px; font-weight: 400; }
 .progress-foot { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 16px; }
