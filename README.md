@@ -139,7 +139,7 @@ cd src-tauri && cargo test   # 后端单元测试
 npm run tauri build
 ```
 
-NSIS 安装包输出到 `src-tauri/target/release/bundle/nsis/目标计划助手_0.1.0_x64-setup.exe`。
+NSIS 安装包输出到 `src-tauri/target/release/bundle/nsis/目标计划助手_0.2.0_x64-setup.exe`。
 
 ### 技术栈
 
