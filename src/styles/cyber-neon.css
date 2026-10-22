@@ -208,6 +208,24 @@ input { font: inherit; color: var(--text); }
 .day-row.locked { color: var(--muted); }
 .day-tag { font-weight: 700; }
 .day-task { flex: 1; }
+
+/* 今日卡片任务清单（饮食/动作等） */
+.today-tasks { margin: -6px 0 14px; padding-left: 22px; font-size: 14px; line-height: 1.7; }
+.today-tasks li::marker { color: var(--pink); }
+.today-note + .today-tasks { margin-top: -8px; }
+
+/* 漏打 / 已完成 / 接下来：紧凑第二行（任务或 detail） */
+.day-row.has-sub { flex-wrap: wrap; row-gap: 4px; }
+.day-row.has-sub > .day-sub {
+  flex: 0 0 100%; width: 100%; max-width: 100%; min-width: 0;
+  margin: 0; padding: 0; order: 3;
+  font-size: 12px; line-height: 1.45; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.day-row.has-note-line.has-sub > .day-note-row.compact,
+.day-row.has-note-line.has-sub > .day-note-box.compact,
+.day-row.has-note-line.has-sub > .day-note-idle.compact { order: 4; }
+
 .day-meta { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 14px; }
 .mini-btn { padding: 6px 16px; border-radius: 8px; color: var(--pink); border: 1px solid var(--pink); box-shadow: 0 0 8px rgba(var(--k-255-63-180),.4); }
 .mini-btn:hover { background: rgba(var(--k-255-63-180), 0.15); }

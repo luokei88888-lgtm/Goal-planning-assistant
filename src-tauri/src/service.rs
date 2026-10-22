@@ -41,6 +41,8 @@ pub struct DayItem {
     pub date: String,
     pub title: String,
     pub detail: String,
+    /// 当日任务清单（含饮食等），来自 plan_days.tasks JSON。
+    pub tasks: Vec<String>,
     pub is_rest: bool,
     pub checked: bool,
     pub kind: Option<String>,
@@ -120,24 +122,27 @@ pub(crate) fn version_for(conn: &Connection, goal_id: i64, active_only: bool) ->
 pub(crate) fn days_of(conn: &Connection, version_id: i64) -> R<Vec<DayItem>> {
     let mut st = conn
         .prepare(
-            "SELECT d.id, d.day_index, d.date, d.title, d.detail, d.is_rest, c.kind, d.note
+            "SELECT d.id, d.day_index, d.date, d.title, d.detail, d.tasks, d.is_rest, c.kind, d.note
              FROM plan_days d LEFT JOIN checkins c ON c.plan_day_id = d.id
              WHERE d.plan_version_id = ?1 ORDER BY d.day_index",
         )
         .map_err(e)?;
     let rows = st
         .query_map([version_id], |r| {
-            let kind: Option<String> = r.get(6)?;
+            let tasks_raw: String = r.get(5)?;
+            let tasks: Vec<String> = serde_json::from_str(&tasks_raw).unwrap_or_default();
+            let kind: Option<String> = r.get(7)?;
             Ok(DayItem {
                 id: r.get(0)?,
                 day_index: r.get(1)?,
                 date: r.get(2)?,
                 title: r.get(3)?,
                 detail: r.get(4)?,
-                is_rest: r.get::<_, i64>(5)? != 0,
+                tasks,
+                is_rest: r.get::<_, i64>(6)? != 0,
                 checked: kind.is_some(),
                 kind,
-                note: r.get(7)?,
+                note: r.get(8)?,
             })
         })
         .map_err(e)?;
@@ -697,6 +702,47 @@ mod tests {
         let today = get_goal_detail(&conn, id, "2026-10-14", 0).unwrap().today.unwrap().id;
         archive_goal(&mut conn, id, 2).unwrap();
         assert!(save_day_note(&conn, today, "归档后", "2026-10-14").is_err());
+    }
+
+    #[test]
+    fn days_of_returns_tasks() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&conn).unwrap();
+        let days = vec![
+            NewDay {
+                title: "全身力量入门 B".into(),
+                detail: "饮食：主食每餐一份为拳头大小、蛋白质、蔬菜。".into(),
+                tasks: vec![
+                    "蹲式/腿举深蹲 3×12".into(),
+                    "记录全天饮食".into(),
+                ],
+                is_rest: false,
+            },
+            NewDay {
+                title: "休息".into(),
+                detail: String::new(),
+                tasks: vec![],
+                is_rest: true,
+            },
+        ];
+        let g = NewGoal {
+            title: "tasks 可见".into(),
+            description: String::new(),
+            icon: None,
+            source: Some("manual".into()),
+            summary: String::new(),
+            start_date: "2026-10-22".into(),
+            days,
+        };
+        let id = create_goal_with_plan(&mut conn, &g, 1).unwrap();
+        let d = get_goal_detail(&conn, id, "2026-10-22", 5).unwrap();
+        let today = d.today.as_ref().expect("today");
+        assert_eq!(today.title, "全身力量入门 B");
+        assert_eq!(today.tasks, vec!["蹲式/腿举深蹲 3×12".to_string(), "记录全天饮食".to_string()]);
+        assert!(today.detail.contains("饮食"));
+        assert_eq!(d.upcoming.len(), 1);
+        assert!(d.upcoming[0].is_rest);
+        assert!(d.upcoming[0].tasks.is_empty());
     }
 
     #[test]

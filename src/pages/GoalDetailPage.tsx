@@ -7,6 +7,13 @@ import { Activity, RefreshCw, CalendarCheck, History, X, CircleCheck, CloudRain,
 import { CircleCheck as PastIc } from "lucide-react";
 import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, saveDayNote, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce, todayStr, getFinalReview, type FinalReview } from "../lib/tauri";
 
+
+/** 列表行第二行文案：优先任务清单，否则 detail；空则不渲染。 */
+function daySubLine(x: DayItem): string {
+  if (x.tasks && x.tasks.length) return x.tasks.join(" · ");
+  return (x.detail || "").trim();
+}
+
 function ReminderModal({ goalId, title, onClose, onSaved }: { goalId: number; title: string; onClose: () => void; onSaved: (r: GoalReminders) => void }) {
   const [on, setOn] = useState(false);
   const [times, setTimes] = useState<string[]>([]);
@@ -290,6 +297,7 @@ function VersionsModal({ goalId, onClose }: { goalId: number; onClose: () => voi
                 <div className="pd-title">{x.is_rest && <Coffee size={15} />}{x.title}{x.is_rest && <em>休息日</em>}
                   {x.checked && <span className="ck-tag">{x.kind === "make_up" ? "补打" : "已打卡"}</span>}</div>
                 {x.detail && <div className="pd-detail">{x.detail}</div>}
+                {x.tasks && x.tasks.length > 0 && <ul>{x.tasks.map((tk, k) => <li key={k}>{tk}</li>)}</ul>}
                 {x.note && <div className="pd-note"><span>备注</span>{x.note}</div>}
               </div>
             </div>
@@ -497,6 +505,11 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
             <div className="today-date"><span>{md(t.date)} 第{t.day_index}天{t.is_rest ? " · 休息日" : ""}</span></div>
             <h2 className="today-task">{t.title}</h2>
             <p className="today-note">{t.detail || " "}</p>
+            {t.tasks && t.tasks.length > 0 && (
+              <ul className="today-tasks">
+                {t.tasks.map((tk, k) => <li key={k}>{tk}</li>)}
+              </ul>
+            )}
             {ro ? (
               <div className="muted">归档版本只读{t.checked ? " · 当天已完成" : ""}</div>
             ) : t.is_rest ? (
@@ -584,9 +597,10 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
             <div className="section-label pink-text"><CloudRain size={18} />漏打</div>
             {d.missed.map((m) => (
               <div key={m.id} className="day-row-wrap" style={{ ["--i" as string]: 0 }}>
-              <div className="day-row has-note-line glass neon-pink-soft">
+              <div className={`day-row has-note-line glass neon-pink-soft${daySubLine(m) ? " has-sub" : ""}`}>
                 <span className="day-tag pink-text">第{m.day_index}天</span>
                 <span className="day-task">{m.title}</span>
+                {daySubLine(m) && <div className="day-sub" title={daySubLine(m)}>{daySubLine(m)}</div>}
                 <span className="day-meta">{md(m.date)}</span>
                 {!ro && <button type="button" className="mini-btn" disabled={busy} onClick={() => run(() => makeUpCheckIn(m.id))}>补打</button>}
                 <DayNoteEditor dayId={m.id} note={m.note || ""} readonly={ro} compact onSaved={() => { setError(""); void load(); }} onError={(e) => { setOkMsg(""); setError(e); }} />
@@ -602,9 +616,10 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
             </div>
             {d.past!.map((p) => (
               <div key={p.id} className="day-row-wrap">
-                <div className="day-row has-note-line glass past-row">
+                <div className={`day-row has-note-line glass past-row${daySubLine(p) ? " has-sub" : ""}`}>
                   <span className="day-tag">第{p.day_index}天</span>
                   <span className="day-task">{p.title}</span>
+                {daySubLine(p) && <div className="day-sub" title={daySubLine(p)}>{daySubLine(p)}</div>}
                   <span className="day-meta">{md(p.date)}</span>
                   <span className={`day-meta past-st ${p.is_rest && !p.checked ? "s-rest" : p.kind === "make_up" ? "s-makeup" : "s-done"}`}>{p.is_rest && !p.checked ? "休息" : p.kind === "make_up" ? "补打" : "已完成"}</span>
                   <DayNoteEditor dayId={p.id} note={p.note || ""} readonly={ro} compact onSaved={() => { setError(""); void load(); }} onError={(e) => { setOkMsg(""); setError(e); }} />
@@ -615,10 +630,11 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
         )}
         {d.upcoming.length > 0 && <div className="section-label cyan-text"><Sparkles size={18} />接下来</div>}
         {d.upcoming.map((f, i) => (
-          <div key={f.id} className="day-row glass locked" style={{ ["--i" as string]: Math.min(i + 1, 10) }}>
+          <div key={f.id} className={`day-row glass locked${daySubLine(f) ? " has-sub" : ""}`} style={{ ["--i" as string]: Math.min(i + 1, 10) }}>
             <Lock size={18} />
             <span className="day-tag">第{f.day_index}天</span>
             <span className="day-task">{f.title}</span>
+                {daySubLine(f) && <div className="day-sub" title={daySubLine(f)}>{daySubLine(f)}</div>}
             <span className="day-meta"><Lock size={16} />{unlockText(f.date)}</span>
           </div>
         ))}

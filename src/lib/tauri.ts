@@ -9,6 +9,7 @@ export type GoalSummary = {
 
 export type DayItem = {
   id: number; day_index: number; date: string; title: string; detail: string;
+  tasks: string[];
   is_rest: boolean; checked: boolean; kind: "on_time" | "make_up" | null; note: string;
 };
 
