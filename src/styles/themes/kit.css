@@ -27,6 +27,23 @@ html:not([data-theme="neon"]) .sidebar { background: var(--t-side-bg) !important
 html:not([data-theme="neon"]) .today-card { background: var(--t-hero-bg) !important; border: var(--t-panel-border) !important;
   box-shadow: var(--t-panel-shadow) !important; backdrop-filter: var(--t-backdrop, none); }
 html:not([data-theme="neon"]) .today-card::before { display: none !important; }
+html:not([data-theme="neon"]) .today-col {
+  background: var(--t-btn-bg) !important;
+  border: var(--t-btn-border) !important;
+  box-shadow: var(--t-btn-shadow) !important;
+  border-radius: var(--t-btn-radius-card, 18px) !important;
+}
+html:not([data-theme="neon"]) .today-col-tip {
+  background: var(--t-input-bg) !important;
+  border: var(--t-input-border) !important;
+  box-shadow: none !important;
+  color: var(--muted) !important;
+}
+html:not([data-theme="neon"]) .today-col.train .today-col-head,
+html:not([data-theme="neon"]) .today-col.train .today-col-head svg { color: #16a34a !important; }
+html:not([data-theme="neon"]) .today-col.diet .today-col-head,
+html:not([data-theme="neon"]) .today-col.diet .today-col-head svg { color: var(--t-accent, #a855f7) !important; }
+
 html:not([data-theme="neon"]) .plan-modal, html:not([data-theme="neon"]) .danger-modal, html:not([data-theme="neon"]) .weather-modal,
 html:not([data-theme="neon"]) .close-modal, html:not([data-theme="neon"]) .nsel-list, html:not([data-theme="neon"]) .toast {
   background: var(--t-modal-bg) !important; border: var(--t-panel-border) !important; box-shadow: var(--t-modal-shadow) !important;

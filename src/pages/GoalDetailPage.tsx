@@ -3,7 +3,7 @@ import { askConfirm } from "../components/ConfirmDialog";
 import { useRoll, confetti, celebrateToast } from "../lib/motion";
 import { TimePicker } from "../components/TimePicker";
 import { createPortal } from "react-dom";
-import { Activity, RefreshCw, CalendarCheck, History, X, Circle, CircleCheck, CloudRain, Sparkles, Lock, ChevronLeft, Undo2, Archive, Coffee, ArchiveRestore, Bell, BellOff, Plus, Trash2, BookmarkPlus, Trophy, ClipboardPen, Bot, ListChecks } from "lucide-react";
+import { Activity, RefreshCw, CalendarCheck, History, X, Circle, CircleCheck, CloudRain, Sparkles, Lock, ChevronLeft, Undo2, Archive, Coffee, ArchiveRestore, Bell, BellOff, Plus, Trash2, BookmarkPlus, Trophy, ClipboardPen, Bot, ListChecks, Dumbbell, Leaf } from "lucide-react";
 import { CircleCheck as PastIc } from "lucide-react";
 import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, saveDayNote, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce, todayStr, getFinalReview, type FinalReview } from "../lib/tauri";
 
@@ -333,6 +333,91 @@ const unlockText = (date: string) => {
   return `${md(date)}解锁`;
 };
 
+
+/** 启发式：是否像饮食相关文案（任务 / 详情） */
+export function isDietText(s: string): boolean {
+  return /饮食|热量|kcal|千卡|卡路里|早餐|午餐|晚餐|加餐|蛋白|粗粮|摄入|含糖|喝水|饮水|主食|TDEE|体重|腰围|燕麦|糙米|红薯|饮料|高热量|零糖|杯水|记录.{0,8}饮食|饮食.{0,8}记录|三餐|一掌心蛋白/i.test(s);
+}
+
+export type TodayPlanSplit =
+  | { mode: "single"; tip: string; tasks: string[] }
+  | { mode: "split"; tip: string; orphanTip: string; trainTasks: string[]; dietTasks: string[] };
+
+/** 把今日 tasks/detail 拆成训练 | 饮食；无饮食内容时回退单列「今日安排」 */
+export function splitTodayPlan(detail: string | null | undefined, tasks: string[] | null | undefined): TodayPlanSplit {
+  const list = tasks ?? [];
+  const tip = (detail ?? "").trim();
+  const dietTasks = list.filter(isDietText);
+  const trainTasks = list.filter((x) => !isDietText(x));
+  const tipIsDiet = !!tip && isDietText(tip);
+  const hasDiet = dietTasks.length > 0 || tipIsDiet;
+  if (!hasDiet) return { mode: "single", tip, tasks: list };
+  return {
+    mode: "split",
+    tip: tipIsDiet ? tip : "",
+    orphanTip: tip && !tipIsDiet ? tip : "",
+    trainTasks,
+    dietTasks,
+  };
+}
+
+function TodayPlanBlock({ detail, tasks }: { detail?: string | null; tasks?: string[] | null }) {
+  const plan = splitTodayPlan(detail, tasks);
+  if (plan.mode === "single") {
+    if (!plan.tasks.length && !plan.tip) return null;
+    return (
+      <>
+        {plan.tip ? <p className="today-detail-chip" title={plan.tip}>{plan.tip}</p> : null}
+        {plan.tasks.length > 0 && (
+          <div className="today-plan">
+            <div className="today-plan-label"><ListChecks size={14} />今日安排</div>
+            <ul className="today-plan-list">
+              {plan.tasks.map((tk, k) => (
+                <li key={k}>
+                  <Circle size={12} className="today-plan-dot" aria-hidden />
+                  <span>{tk}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </>
+    );
+  }
+  return (
+    <>
+      {plan.orphanTip ? <p className="today-detail-chip" title={plan.orphanTip}>{plan.orphanTip}</p> : null}
+      <div className="today-cols">
+        <div className="today-col train">
+          <div className="today-col-head"><Dumbbell size={16} />训练</div>
+          {plan.trainTasks.length ? (
+            <ul className="today-col-list">
+              {plan.trainTasks.map((tk, k) => (
+                <li key={k}><span className="today-col-check" aria-hidden /><span>{tk}</span></li>
+              ))}
+            </ul>
+          ) : (
+            <div className="today-col-empty">今天没有训练安排</div>
+          )}
+        </div>
+        <div className="today-col diet">
+          <div className="today-col-head"><Leaf size={16} />饮食</div>
+          {plan.tip ? <p className="today-col-tip">{plan.tip}</p> : null}
+          {plan.dietTasks.length ? (
+            <ul className="today-col-list">
+              {plan.dietTasks.map((tk, k) => (
+                <li key={k}><span className="today-col-check" aria-hidden /><span>{tk}</span></li>
+              ))}
+            </ul>
+          ) : (
+            <div className="today-col-empty">今天没有饮食安排</div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalReview }: Props) {
   const [showVers, setShowVers] = useState(false);
   const [rem, setRem] = useState<GoalReminders | null>(null);
@@ -504,22 +589,7 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
           <>
             <div className="today-date"><span>{md(t.date)} 第{t.day_index}天{t.is_rest ? " · 休息日" : ""}</span></div>
             <h2 className="today-task">{t.title}</h2>
-            {t.detail?.trim() ? (
-              <p className="today-detail-chip" title={t.detail}>{t.detail.trim()}</p>
-            ) : null}
-            {t.tasks && t.tasks.length > 0 && (
-              <div className="today-plan">
-                <div className="today-plan-label"><ListChecks size={14} />今日安排</div>
-                <ul className="today-plan-list">
-                  {t.tasks.map((tk, k) => (
-                    <li key={k}>
-                      <Circle size={12} className="today-plan-dot" aria-hidden />
-                      <span>{tk}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+                        <TodayPlanBlock detail={t.detail} tasks={t.tasks} />
             {ro ? (
               <div className="muted">归档版本只读{t.checked ? " · 当天已完成" : ""}</div>
             ) : t.is_rest ? (

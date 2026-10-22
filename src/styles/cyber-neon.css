@@ -1241,3 +1241,92 @@ html[data-theme="brutal"] .status-pill .st-text { font-weight: 600; font-size: 1
   background: rgba(0,0,0,.55); color: #fff;
 }
 .img-lightbox-x:hover { background: rgba(0,0,0,.75); }
+
+/* ---- today F1 · 并排等宽 ---- */
+.today-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: min(640px, 100%);
+  margin: 6px auto 16px;
+  text-align: left;
+  align-items: stretch;
+}
+.today-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 120px;
+  padding: 14px 14px 12px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--glass) 92%, #fff);
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+.today-col-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+.today-col-head svg { flex-shrink: 0; }
+.today-col.train .today-col-head { color: #16a34a; }
+.today-col.train .today-col-head svg { color: #16a34a; }
+.today-col.diet .today-col-head { color: var(--pink2, #a855f7); }
+.today-col.diet .today-col-head svg { color: var(--pink2, #a855f7); }
+.today-col-tip {
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--glass) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+}
+.today-col-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.today-col-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text);
+}
+.today-col-check {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin-top: 3px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 2px solid color-mix(in srgb, #4ade80 70%, transparent);
+  background: color-mix(in srgb, #4ade80 22%, transparent);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+.today-col.diet .today-col-check {
+  border-color: color-mix(in srgb, var(--pink2, #c084fc) 65%, transparent);
+  background: color-mix(in srgb, var(--pink2, #c084fc) 18%, transparent);
+}
+.today-col-empty {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--muted);
+  opacity: 0.8;
+  padding: 4px 2px 2px;
+}
+@media (max-width: 560px) {
+  .today-cols { grid-template-columns: 1fr; width: min(420px, 100%); }
+}
