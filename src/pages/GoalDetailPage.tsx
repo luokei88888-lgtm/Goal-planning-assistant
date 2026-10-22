@@ -323,13 +323,7 @@ const ts = (s: number) => {
   return `${t.getMonth() + 1}月${t.getDate()}日 ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
 };
 
-const unlockText = (date: string) => {
-  const today = todayStr();
-  const [y, m, d] = today.split("-").map(Number);
-  const [Y, M, D] = date.split("-").map(Number);
-  const days = Math.round((Date.UTC(Y, M - 1, D) - Date.UTC(y, m - 1, d)) / 86400000);
-  return `${md(date)}解锁`;
-};
+const unlockText = (date: string) => `${md(date)}解锁`;
 
 
 /** 启发式：是否像饮食相关文案（任务 / 详情） */
