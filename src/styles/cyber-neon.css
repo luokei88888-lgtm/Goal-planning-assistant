@@ -1379,3 +1379,24 @@ html[data-theme="brutal"] .status-pill .st-text { font-weight: 600; font-size: 1
 }
 .today-check-pill.done .undo-hint { opacity: .7; }
 .today-ro-hint { margin: 0 auto 10px; width: min(640px, 100%); text-align: left; }
+
+/* ---- detail list soft panels (C) ---- */
+.detail-list-panel {
+  border-radius: 24px;
+  padding: 12px 14px 8px;
+  margin: 0 0 14px;
+  background: color-mix(in srgb, var(--glass) 88%, #fff);
+  border: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-sizing: border-box;
+}
+.detail-list-panel .section-label {
+  margin: 0 0 10px;
+}
+.detail-list-panel .day-row-wrap:last-child,
+.detail-list-panel > .day-row:last-child {
+  margin-bottom: 0;
+}
+.detail-list-panel .day-row {
+  border-radius: 16px;
+}

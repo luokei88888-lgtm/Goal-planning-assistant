@@ -27,6 +27,13 @@ html:not([data-theme="neon"]) .sidebar { background: var(--t-side-bg) !important
 html:not([data-theme="neon"]) .today-card { background: var(--t-hero-bg) !important; border: var(--t-panel-border) !important;
   box-shadow: var(--t-panel-shadow) !important; backdrop-filter: var(--t-backdrop, none); }
 html:not([data-theme="neon"]) .today-card::before { display: none !important; }
+html:not([data-theme="neon"]) .detail-list-panel {
+  background: var(--t-panel-bg) !important;
+  border: var(--t-panel-border) !important;
+  box-shadow: var(--t-panel-shadow) !important;
+  border-radius: var(--t-radius, 24px) !important;
+}
+
 html:not([data-theme="neon"]) .today-col {
   background: var(--t-btn-bg) !important;
   border: var(--t-btn-border) !important;

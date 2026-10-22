@@ -684,7 +684,7 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
 
       <div className="scroll-area m-stagger">
         {d.missed.length > 0 && (
-          <>
+          <div className="detail-list-panel">
             <div className="section-label pink-text"><CloudRain size={18} />漏打</div>
             {d.missed.map((m) => (
               <div key={m.id} className="day-row-wrap" style={{ ["--i" as string]: 0 }}>
@@ -698,10 +698,10 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
               </div>
             </div>
             ))}
-          </>
+          </div>
         )}
         {pastN > 0 && pastOpen && (
-          <>
+          <div className="detail-list-panel">
             <div className="section-label cyan-text" ref={pastRef}><PastIc size={18} />已完成
               <button type="button" className="section-fold" onClick={() => setPastOpen(false)}>收起</button>
             </div>
@@ -716,18 +716,22 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
                 </div>
               </div>
             ))}
-          </>
-        )}
-        {d.upcoming.length > 0 && <div className="section-label cyan-text"><Sparkles size={18} />接下来</div>}
-        {d.upcoming.map((f, i) => (
-          <div key={f.id} className={`day-row glass locked${daySubLine(f) ? " has-sub" : ""}`} style={{ ["--i" as string]: Math.min(i + 1, 10) }}>
-            <Lock size={18} />
-            <span className="day-tag">第{f.day_index}天</span>
-            <span className="day-task">{f.title}</span>
-                {daySubLine(f) && <div className="day-sub" title={daySubLine(f)}>{daySubLine(f)}</div>}
-            <span className="day-meta"><Lock size={16} />{unlockText(f.date)}</span>
           </div>
-        ))}
+        )}
+        {d.upcoming.length > 0 && (
+          <div className="detail-list-panel">
+            <div className="section-label cyan-text"><Sparkles size={18} />接下来</div>
+            {d.upcoming.map((f, i) => (
+              <div key={f.id} className={`day-row glass locked${daySubLine(f) ? " has-sub" : ""}`} style={{ ["--i" as string]: Math.min(i + 1, 10) }}>
+                <Lock size={18} />
+                <span className="day-tag">第{f.day_index}天</span>
+                <span className="day-task">{f.title}</span>
+                {daySubLine(f) && <div className="day-sub" title={daySubLine(f)}>{daySubLine(f)}</div>}
+                <span className="day-meta"><Lock size={16} />{unlockText(f.date)}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
