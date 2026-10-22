@@ -337,6 +337,7 @@ export function ChatPage({ onOpenGoal, onGoSettings, goalId, prefill, onBack }: 
   const [otherHint, setOtherHint] = useState(false);
   const [ask, setAsk] = useState<{ mid: number; tomorrow: boolean; checked: boolean } | null>(null);
   const [pending, setPending] = useState<PendingImage[]>([]);
+  const [lightbox, setLightbox] = useState<{ src: string; alt?: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const reviseMode = s ? s.goal_id !== null : goalId !== undefined;
@@ -352,6 +353,12 @@ export function ChatPage({ onOpenGoal, onGoSettings, goalId, prefill, onBack }: 
   drawerRef.current = drawer;
   // 进入页面、新建/切换会话、回复结束（含出错/取消）后自动聚焦输入框
   useEffect(() => { if (!busy) focusInput(); }, [s?.id, busy, drawer]);
+  useEffect(() => {
+    if (!lightbox) return;
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") setLightbox(null); };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [lightbox]);
   useEffect(() => {
     const el = inputRef.current;
     if (!el) return;
@@ -511,7 +518,10 @@ export function ChatPage({ onOpenGoal, onGoSettings, goalId, prefill, onBack }: 
                 {!!m.attachments?.length && (
                   <div className="bubble-imgs">
                     {m.attachments.map((a) => (
-                      <img key={a.id} src={a.data_url} alt={a.name || "图片"} className="bubble-img" />
+                      <button key={a.id} type="button" className="bubble-img-btn" title="查看大图"
+                        onClick={() => setLightbox({ src: a.data_url, alt: a.name || "图片" })}>
+                        <img src={a.data_url} alt={a.name || "图片"} className="bubble-img" />
+                      </button>
                     ))}
                   </div>
                 )}
@@ -600,32 +610,37 @@ export function ChatPage({ onOpenGoal, onGoSettings, goalId, prefill, onBack }: 
       )}
 
       <div className="chat-compose">
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/*" multiple hidden
+          onChange={(e) => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = ""; }} />
         {pending.length > 0 && (
           <div className="chat-thumbs">
             {pending.map((x) => (
               <div key={x.key} className="chat-thumb">
-                <img src={x.preview} alt={x.name} />
-                <button type="button" className="thumb-x" title="移除" disabled={busy} onClick={() => setPending((p) => p.filter((y) => y.key !== x.key))}><X size={12} /></button>
+                <button type="button" className="thumb-open" title="查看大图"
+                  onClick={() => setLightbox({ src: x.preview, alt: x.name })}>
+                  <img src={x.preview} alt={x.name} />
+                </button>
+                <button type="button" className="thumb-x" title="移除" disabled={busy}
+                  onClick={(e) => { e.stopPropagation(); setPending((p) => p.filter((y) => y.key !== x.key)); }}>
+                  <X size={12} />
+                </button>
               </div>
             ))}
           </div>
         )}
-        <div className="chat-input">
-          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/*" multiple hidden
-            onChange={(e) => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = ""; }} />
+        <textarea ref={inputRef} rows={1} value={input} onChange={(e) => setInput(e.target.value)}
+          placeholder={otherHint && curOpts?.opts.length ? "请直接输入你自己的答案…（Enter 发送）" : curOpts?.opts.length ? "点选上方选项，或输入序号（如 2、3）/ 自己的答案" : "输入文字或添加图片…（Enter 发送，可粘贴截图）"}
+          aria-busy={busy}
+          onPaste={(e) => {
+            const files = [...e.clipboardData.items].filter((i) => i.type.startsWith("image/")).map((i) => i.getAsFile()).filter((f): f is File => !!f);
+            if (files.length) { e.preventDefault(); addFiles(files); }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); if (!busy && !busyRef.current) submit(input); }
+          }} />
+        <div className="chat-compose-bar">
           <button type="button" className="attach-btn" title="添加图片" disabled={busy || pending.length >= MAX_CHAT_IMAGES}
             onClick={() => fileRef.current?.click()}><ImagePlus size={22} /></button>
-          <textarea ref={inputRef} rows={1} value={input} onChange={(e) => setInput(e.target.value)}
-            placeholder={otherHint && curOpts?.opts.length ? "请直接输入你自己的答案…（Enter 发送）" : curOpts?.opts.length ? "点选上方选项，或输入序号（如 2、3）/ 自己的答案" : "输入文字或添加图片…（Enter 发送，可粘贴截图）"}
-            aria-busy={busy}
-            onPaste={(e) => {
-              const files = [...e.clipboardData.items].filter((i) => i.type.startsWith("image/")).map((i) => i.getAsFile()).filter((f): f is File => !!f);
-              if (files.length) { e.preventDefault(); addFiles(files); }
-            }}
-            onKeyDown={(e) => {
-              // 回复生成中可以先打字，但 Enter 不发送
-              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); if (!busy && !busyRef.current) submit(input); }
-            }} />
           {busy ? (
             <button type="button" className="stop-btn" title="停止生成" onClick={stop}><Square size={16} fill="currentColor" />停止生成</button>
           ) : (
@@ -633,6 +648,13 @@ export function ChatPage({ onOpenGoal, onGoSettings, goalId, prefill, onBack }: 
           )}
         </div>
       </div>
+      {lightbox && createPortal(
+        <div className="img-lightbox" onClick={() => setLightbox(null)} role="dialog" aria-modal="true" aria-label="图片预览">
+          <button type="button" className="img-lightbox-x" title="关闭" onClick={() => setLightbox(null)}><X size={22} /></button>
+          <img src={lightbox.src} alt={lightbox.alt || "预览"} onClick={(e) => e.stopPropagation()} />
+        </div>,
+        document.body,
+      )}
       {undo && (
         <div className="undo-bar glass">
           <Trash2 size={16} />已删除「{undo.item.title}」

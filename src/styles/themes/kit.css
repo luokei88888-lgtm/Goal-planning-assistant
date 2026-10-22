@@ -85,9 +85,11 @@ html:not([data-theme="neon"]) .page-title.underline::after { background: var(--t
 
 /* 输入 */
 html:not([data-theme="neon"]) .field input, html:not([data-theme="neon"]) .field textarea, html:not([data-theme="neon"]) .chat-input,
+html:not([data-theme="neon"]) .chat-compose,
 html:not([data-theme="neon"]) .time-input, html:not([data-theme="neon"]) .session-edit {
   background: var(--t-input-bg) !important; border: var(--t-input-border) !important; box-shadow: var(--t-input-shadow) !important; color: var(--text); }
-html:not([data-theme="neon"]) .chat-input { border-radius: var(--t-btn-radius) !important; }
+html:not([data-theme="neon"]) .chat-input,
+html:not([data-theme="neon"]) .chat-compose { border-radius: var(--t-btn-radius) !important; }
 html:not([data-theme="neon"]) .switch { background: var(--t-input-bg) !important; border: var(--t-input-border) !important; box-shadow: var(--t-input-shadow) !important; }
 html:not([data-theme="neon"]) .switch:checked { background: var(--t-switch-on, var(--t-accent)) !important; border-color: transparent !important; }
 html:not([data-theme="neon"]) .switch:checked::after { background: #fff !important; box-shadow: 0 1px 3px rgba(0,0,0,.25) !important; }
