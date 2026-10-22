@@ -1383,8 +1383,9 @@ html[data-theme="brutal"] .status-pill .st-text { font-weight: 600; font-size: 1
 
 .today-title-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .swap-rest-btn {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 700;
+  letter-spacing: 0.02em; white-space: nowrap; line-height: 1;
   color: var(--text-dim, #8a90a2); background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.12); cursor: pointer;
 }

@@ -599,7 +599,7 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
   const t = d.today;
   const ro = d.readonly;
   const canSwap = Boolean(
-    t && !ro && d.status === "active" && d.version_no != null && (t.is_rest || !t.checked)
+    t && !ro && d.status === "active" && d.version_no != null && !t.checked
   );
   // 已完成 / 归档（今日卡换成总结或无今日）时默认展开，保证可达
   const pastOpen = pastOpenS ?? d.status !== "active";

@@ -365,7 +365,7 @@ pub fn save_day_note(conn: &Connection, plan_day_id: i64, note: &str, today: &st
 
 
 /// 换休：互换两天的 title/detail/tasks/is_rest（保留各自 id/date/day_index/note；不互换打卡）。
-pub fn swap_plan_days(conn: &Connection, a_id: i64, b_id: i64, today: &str) -> R<()> {
+pub fn swap_plan_days(conn: &mut Connection, a_id: i64, b_id: i64, today: &str) -> R<()> {
     if a_id == b_id {
         return Err("请选择两个不同的日子对调".into());
     }
@@ -406,14 +406,18 @@ pub fn swap_plan_days(conn: &Connection, a_id: i64, b_id: i64, today: &str) -> R
     if a_vid != b_vid {
         return Err("只能对调同一份计划里的两天".into());
     }
-    if a_gs == "archived" || b_gs == "archived" {
-        return Err("目标已归档，只能查看，不能换休".into());
+    if a_gs != "active" || b_gs != "active" {
+        if a_gs == "archived" || b_gs == "archived" {
+            return Err("目标已归档，只能查看，不能换休".into());
+        }
+        return Err("只有进行中的目标才能换休".into());
     }
     for vs in [&a_vs, &b_vs] {
         match vs.as_str() {
             "draft" => return Err("草案还没生效，不能换休".into()),
             "archived" => return Err("这是归档的旧版本，只能查看，不能换休".into()),
-            _ => {}
+            "active" => {}
+            _ => return Err("当前计划版本不可换休".into()),
         }
     }
     if a_date.as_str() < today || b_date.as_str() < today {
@@ -426,16 +430,18 @@ pub fn swap_plan_days(conn: &Connection, a_id: i64, b_id: i64, today: &str) -> R
         return Err("已经打过卡的日子不能换休".into());
     }
 
-    conn.execute(
+    let tx = conn.transaction().map_err(e)?;
+    tx.execute(
         "UPDATE plan_days SET title=?1, detail=?2, tasks=?3, is_rest=?4 WHERE id=?5",
         params![b_title, b_detail, b_tasks, b_rest as i64, a_id],
     )
     .map_err(e)?;
-    conn.execute(
+    tx.execute(
         "UPDATE plan_days SET title=?1, detail=?2, tasks=?3, is_rest=?4 WHERE id=?5",
         params![a_title, a_detail, a_tasks, a_rest as i64, b_id],
     )
     .map_err(e)?;
+    tx.commit().map_err(e)?;
     Ok(())
 }
 
@@ -860,7 +866,7 @@ mod tests {
         assert!(!next.is_rest);
         save_day_note(&conn, today.id, "今天其实想打球", "2026-10-22").unwrap();
 
-        swap_plan_days(&conn, today.id, next.id, "2026-10-22").unwrap();
+        swap_plan_days(&mut conn, today.id, next.id, "2026-10-22").unwrap();
 
         let d = get_goal_detail(&conn, id, "2026-10-22", 5).unwrap();
         let t = d.today.as_ref().unwrap();
@@ -895,7 +901,7 @@ mod tests {
         let d = get_goal_detail(&conn, id, "2026-10-22", 5).unwrap();
         let a = d.today.as_ref().unwrap().id;
         let b = d.upcoming[0].id;
-        let err = swap_plan_days(&conn, a, b, "2026-10-22").unwrap_err();
+        let err = swap_plan_days(&mut conn, a, b, "2026-10-22").unwrap_err();
         assert!(err.contains("休息日") && err.contains("行动日"), "{err}");
     }
 
@@ -916,8 +922,112 @@ mod tests {
         let today = d.today.as_ref().unwrap().id;
         let rest = d.upcoming[0].id;
         check_in(&conn, today, "2026-10-22", 1).unwrap();
-        let err = swap_plan_days(&conn, today, rest, "2026-10-22").unwrap_err();
+        let err = swap_plan_days(&mut conn, today, rest, "2026-10-22").unwrap_err();
         assert!(err.contains("打过卡") || err.contains("打卡"), "{err}");
+    }
+
+
+    #[test]
+    fn swap_preserves_due_and_stats() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&conn).unwrap();
+        let days = vec![
+            NewDay { title: "休".into(), detail: "休详".into(), tasks: vec![], is_rest: true },
+            NewDay { title: "练".into(), detail: "练详".into(), tasks: vec!["深蹲".into()], is_rest: false },
+            NewDay { title: "跑".into(), detail: String::new(), tasks: vec!["慢跑".into()], is_rest: false },
+            NewDay { title: "休2".into(), detail: String::new(), tasks: vec![], is_rest: true },
+        ];
+        let g = NewGoal {
+            title: "统计一致".into(), description: String::new(), icon: None, source: Some("manual".into()),
+            summary: String::new(), start_date: "2026-10-22".into(), days,
+        };
+        let id = create_goal_with_plan(&mut conn, &g, 1).unwrap();
+        let before = get_goal_detail(&conn, id, "2026-10-22", 5).unwrap();
+        let due_before = before.total - before.rest;
+        let s0 = crate::stats::get_stats(&conn, Some(id), "2026-10-22").unwrap();
+        let r0 = s0.ranking.iter().find(|x| x.id == id).unwrap();
+
+        let today = before.today.as_ref().unwrap().clone();
+        let next = before.upcoming.iter().find(|x| !x.is_rest).unwrap().clone();
+        assert!(today.is_rest && !next.is_rest);
+        swap_plan_days(&mut conn, today.id, next.id, "2026-10-22").unwrap();
+
+        let after = get_goal_detail(&conn, id, "2026-10-22", 5).unwrap();
+        assert_eq!(after.rest, before.rest, "休息日总数不变");
+        assert_eq!(after.total - after.rest, due_before, "行动日分母不变");
+        assert_eq!(after.done, before.done);
+        assert!(!after.today.as_ref().unwrap().is_rest);
+        assert!(after.upcoming.iter().find(|x| x.id == next.id).unwrap().is_rest);
+
+        let s1 = crate::stats::get_stats(&conn, Some(id), "2026-10-22").unwrap();
+        let r1 = s1.ranking.iter().find(|x| x.id == id).unwrap();
+        // 统计 due 只计「今天及以前」的行动日：今天由休息→行动后 due +1，属预期
+        assert_eq!(r1.done, r0.done);
+        assert_eq!(r1.due, r0.due + 1, "今天变成行动日后，截止今日的 due 应 +1");
+        assert_eq!(s1.total_checkins, s0.total_checkins);
+        let cell = |s: &crate::stats::Stats, d: &str| s.heatmap.iter().find(|c| c.date == d).cloned();
+        let h_today = cell(&s1, "2026-10-22").expect("today heat");
+        assert!(!h_today.rest && h_today.due == 1 && h_today.done == 0);
+        // 未来日不计入 due；热力上对调后的休息日 future=true、rest 显示
+        let h_next = cell(&s1, &next.date).expect("swapped heat");
+        assert!(h_next.future);
+        assert!(h_next.rest || h_next.due == 0);
+    }
+
+    #[test]
+    fn swap_rejects_past_archived_and_same_id() {
+        let (mut conn, id) = setup();
+        let d = get_goal_detail(&conn, id, "2026-10-14", 10).unwrap();
+        let today = d.today.as_ref().unwrap().clone();
+        let past = d.missed[0].clone();
+        let err = swap_plan_days(&mut conn, today.id, past.id, "2026-10-14").unwrap_err();
+        assert!(err.contains("过去"), "{err}");
+
+        let err = swap_plan_days(&mut conn, today.id, today.id, "2026-10-14").unwrap_err();
+        assert!(err.contains("不同"), "{err}");
+
+        // 找一个未来休息日再归档
+        let rest = d.upcoming.iter().find(|x| x.is_rest).cloned().or_else(|| {
+            // sample: day 11 is rest if in upcoming limit
+            None
+        });
+        archive_goal(&mut conn, id, 9).unwrap();
+        if let Some(r) = rest {
+            let err = swap_plan_days(&mut conn, today.id, r.id, "2026-10-14").unwrap_err();
+            assert!(err.contains("归档"), "{err}");
+        } else {
+            // 即使没有候选，归档后任意两天也应拒绝：用 upcoming[0]
+            let other = d.upcoming[0].id;
+            let err = swap_plan_days(&mut conn, today.id, other, "2026-10-14").unwrap_err();
+            assert!(err.contains("归档") || err.contains("进行中") || err.contains("休息日"), "{err}");
+        }
+    }
+
+    #[test]
+    fn swap_action_today_with_future_rest() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&conn).unwrap();
+        let days = vec![
+            NewDay { title: "力量".into(), detail: "练".into(), tasks: vec!["深蹲".into()], is_rest: false },
+            NewDay { title: "有氧".into(), detail: String::new(), tasks: vec!["跑".into()], is_rest: false },
+            NewDay { title: "休息".into(), detail: "拉伸".into(), tasks: vec![], is_rest: true },
+        ];
+        let g = NewGoal {
+            title: "行动换休".into(), description: String::new(), icon: None, source: Some("manual".into()),
+            summary: String::new(), start_date: "2026-10-22".into(), days,
+        };
+        let id = create_goal_with_plan(&mut conn, &g, 1).unwrap();
+        let d = get_goal_detail(&conn, id, "2026-10-22", 5).unwrap();
+        let today = d.today.as_ref().unwrap().clone();
+        let rest = d.upcoming.iter().find(|x| x.is_rest).unwrap().clone();
+        assert!(!today.is_rest && rest.is_rest);
+        swap_plan_days(&mut conn, today.id, rest.id, "2026-10-22").unwrap();
+        let d = get_goal_detail(&conn, id, "2026-10-22", 5).unwrap();
+        assert!(d.today.as_ref().unwrap().is_rest);
+        assert_eq!(d.today.as_ref().unwrap().title, "休息");
+        let moved = d.upcoming.iter().find(|x| x.id == rest.id).unwrap();
+        assert!(!moved.is_rest);
+        assert_eq!(moved.title, "力量");
     }
 
     #[test]

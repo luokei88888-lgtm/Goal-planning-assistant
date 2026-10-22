@@ -34,6 +34,9 @@ html[data-theme="clay"] .swap-rest-btn {
   box-shadow: var(--t-btn-shadow);
   color: #5a4fcf;
   font-weight: 800;
+  padding: 8px 14px;
+  font-size: 14px;
+  min-height: 36px;
 }
 html[data-theme="clay"] .swap-rest-btn:hover:not(:disabled) {
   background: var(--t-btn-hover);

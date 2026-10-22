@@ -19,7 +19,7 @@ pub struct WeekPoint {
     pub rate: Option<f64>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct HeatCell {
     pub date: String,
     pub done: i64,

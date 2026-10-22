@@ -22,3 +22,67 @@ html[data-theme="neu"] {
 html[data-theme="neu"] .ghost-btn:active, html[data-theme="neu"] .gd-btn:active, html[data-theme="neu"] .checkin-btn:active, html[data-theme="neu"] .opt-btn:active,
 html[data-theme="neu"] .nsel.open, html[data-theme="neu"] .checkin-btn.done { box-shadow: var(--neu-in) !important; }
 html[data-theme="neu"] .ver-pill { box-shadow: var(--neu-in) !important; color: #2a55d0 !important; }
+
+/* 换休：新拟物浮雕 */
+html[data-theme="neu"] .swap-rest-btn {
+  border-radius: 14px;
+  background: #e4e9f0;
+  border: none;
+  box-shadow: var(--neu-out-sm);
+  color: #2a55d0;
+  font-weight: 700;
+  padding: 8px 14px;
+}
+html[data-theme="neu"] .swap-rest-btn:hover:not(:disabled) {
+  background: #e8edf4;
+  color: #2a55d0;
+  border: none;
+}
+html[data-theme="neu"] .swap-modal {
+  background: #e4e9f0 !important;
+  border: none !important;
+  border-radius: 22px !important;
+  box-shadow: var(--neu-out), 12px 12px 28px #b8bec7 !important;
+  color: #2c3544 !important;
+}
+html[data-theme="neu"] .swap-kicker {
+  color: #2a55d0;
+  background: #e4e9f0;
+  border: none;
+  box-shadow: var(--neu-in);
+}
+html[data-theme="neu"] .swap-today-pill {
+  border-radius: 18px;
+  border: none;
+  background: #e4e9f0;
+  box-shadow: var(--neu-in);
+}
+html[data-theme="neu"] .swap-today-pill.rest { background: #e4e9f0; }
+html[data-theme="neu"] .swap-today-label {
+  background: #2a55d0; color: #fff; box-shadow: none;
+}
+html[data-theme="neu"] .swap-cand {
+  border: none;
+  border-radius: 18px;
+  background: #e4e9f0;
+  box-shadow: var(--neu-out-sm);
+}
+html[data-theme="neu"] .swap-cand.rest { background: #e4e9f0; }
+html[data-theme="neu"] .swap-cand:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--neu-out);
+  background: #e8edf4;
+  border: none;
+}
+html[data-theme="neu"] .swap-cand-day { color: #2a55d0; }
+html[data-theme="neu"] .swap-cand-go {
+  color: #2a55d0;
+  background: #e4e9f0;
+  border: none;
+  border-radius: 14px;
+  box-shadow: var(--neu-out-sm);
+  font-weight: 800;
+}
+html[data-theme="neu"] .swap-cand:hover:not(:disabled) .swap-cand-go {
+  box-shadow: var(--neu-in);
+}

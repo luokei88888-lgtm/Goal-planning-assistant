@@ -25,3 +25,65 @@ html[data-theme="brutal"] .kpi:nth-child(5n+3) { background: #a5d8ff !important;
 html[data-theme="brutal"] .kpi:nth-child(5n+4) { background: #ffd23f !important; }
 html[data-theme="brutal"] .nav-item:hover { background: #fff; }
 html[data-theme="brutal"] .ghost-btn:active, html[data-theme="brutal"] .checkin-btn:active, html[data-theme="brutal"] .gd-btn:active { transform: translate(3px,3px); box-shadow: 1px 1px 0 #000 !important; }
+
+/* 换休：野兽派硬边 + 撞色主按钮 */
+html[data-theme="brutal"] .swap-rest-btn {
+  border-radius: 6px;
+  border: 3px solid #000;
+  background: #fff;
+  box-shadow: 4px 4px 0 #000;
+  color: #000;
+  font-weight: 800;
+  padding: 7px 12px;
+}
+html[data-theme="brutal"] .swap-rest-btn:hover:not(:disabled) {
+  background: #fff4d6;
+  color: #000;
+  border-color: #000;
+}
+html[data-theme="brutal"] .swap-modal {
+  background: #ffffff !important;
+  border: 3px solid #000 !important;
+  border-radius: 6px !important;
+  box-shadow: 8px 8px 0 #000 !important;
+  color: #000 !important;
+}
+html[data-theme="brutal"] .swap-kicker {
+  color: #000;
+  background: #ffd23f;
+  border: 2px solid #000;
+  border-radius: 4px;
+  box-shadow: none;
+}
+html[data-theme="brutal"] .swap-today-pill {
+  border-radius: 6px;
+  border: 3px solid #000;
+  background: #a5d8ff;
+  box-shadow: 3px 3px 0 #000;
+}
+html[data-theme="brutal"] .swap-today-pill.rest { background: #ffd23f; }
+html[data-theme="brutal"] .swap-today-label {
+  background: #000; color: #fff; border-radius: 4px; box-shadow: none;
+}
+html[data-theme="brutal"] .swap-cand {
+  border-radius: 6px;
+  border: 3px solid #000;
+  background: #fff;
+  box-shadow: 4px 4px 0 #000;
+}
+html[data-theme="brutal"] .swap-cand.rest { background: #fff4d6; }
+html[data-theme="brutal"] .swap-cand:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #000;
+  background: #fff;
+  border-color: #000;
+}
+html[data-theme="brutal"] .swap-cand-day { color: #000; }
+html[data-theme="brutal"] .swap-cand-go {
+  color: #000;
+  background: #ff6b9d;
+  border: 3px solid #000;
+  border-radius: 6px;
+  box-shadow: 3px 3px 0 #000;
+  padding: 6px 12px;
+}

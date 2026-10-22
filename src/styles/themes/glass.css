@@ -61,3 +61,10 @@ html[data-theme="glass"] .swap-rest-btn {
   color: #6d28d9;
 }
 
+/* 换休入口高度与完成今天对齐 */
+html[data-theme="glass"] .swap-rest-btn {
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 999px;
+}
