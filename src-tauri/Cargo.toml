@@ -1,6 +1,6 @@
 [package]
 name = "goal-plan-assistant"
-version = "0.2.0"
+version = "0.2.1"
 description = "目标计划助手 - 本地桌面目标与计划工具"
 authors = ["luoke"]
 edition = "2021"
