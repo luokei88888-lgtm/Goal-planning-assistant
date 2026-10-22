@@ -328,8 +328,6 @@ const unlockText = (date: string) => {
   const [y, m, d] = today.split("-").map(Number);
   const [Y, M, D] = date.split("-").map(Number);
   const days = Math.round((Date.UTC(Y, M - 1, D) - Date.UTC(y, m - 1, d)) / 86400000);
-  if (days === 1) return "明日解锁";
-  if (days === 2) return "后日解锁";
   return `${md(date)}解锁`;
 };
 
