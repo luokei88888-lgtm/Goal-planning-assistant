@@ -209,17 +209,47 @@ input { font: inherit; color: var(--text); }
 .day-tag { font-weight: 700; }
 .day-task { flex: 1; }
 
-/* 今日卡片任务清单（饮食/动作等） */
-.today-tasks { margin: -6px 0 14px; padding-left: 22px; font-size: 14px; line-height: 1.7; }
-.today-tasks li::marker { color: var(--pink); }
-.today-note + .today-tasks { margin-top: -8px; }
-
-/* 漏打 / 已完成 / 接下来：紧凑第二行（任务或 detail） */
+/* Today card: muted detail chip + left-aligned plan checklist */
+.today-detail-chip {
+  display: inline-block; max-width: min(520px, 92%);
+  margin: 2px auto 12px; padding: 6px 14px;
+  border-radius: 999px; font-size: 13px; line-height: 1.4;
+  color: var(--muted); background: color-mix(in srgb, var(--glass) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  vertical-align: top;
+}
+.today-plan {
+  text-align: left; width: min(420px, 100%); margin: 0 auto 16px;
+  padding: 12px 14px 10px; border-radius: 14px;
+  background: color-mix(in srgb, var(--glass) 85%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 18%, transparent);
+}
+.today-plan-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 0 0 8px; font-size: 12px; font-weight: 600;
+  letter-spacing: .04em; color: var(--muted); opacity: .9;
+}
+.today-plan-label svg { flex-shrink: 0; opacity: .85; }
+.today-plan-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.today-plan-list li {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin: 0; padding: 0; font-size: 14px; line-height: 1.45;
+  color: var(--text); text-align: left;
+}
+.today-plan-dot {
+  flex-shrink: 0; margin-top: 3px;
+  color: var(--cyan); opacity: .75;
+}
 .day-row.has-sub { flex-wrap: wrap; row-gap: 4px; }
 .day-row.has-sub > .day-sub {
   flex: 0 0 100%; width: 100%; max-width: 100%; min-width: 0;
-  margin: 0; padding: 0; order: 3;
-  font-size: 12px; line-height: 1.45; color: var(--muted);
+  margin: 0; padding: 2px 0 0; order: 3;
+  font-size: 12px; line-height: 1.4; color: var(--muted); opacity: .9;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .day-row.has-note-line.has-sub > .day-note-row.compact,

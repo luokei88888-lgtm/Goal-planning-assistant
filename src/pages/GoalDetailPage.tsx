@@ -3,7 +3,7 @@ import { askConfirm } from "../components/ConfirmDialog";
 import { useRoll, confetti, celebrateToast } from "../lib/motion";
 import { TimePicker } from "../components/TimePicker";
 import { createPortal } from "react-dom";
-import { Activity, RefreshCw, CalendarCheck, History, X, CircleCheck, CloudRain, Sparkles, Lock, ChevronLeft, Undo2, Archive, Coffee, ArchiveRestore, Bell, BellOff, Plus, Trash2, BookmarkPlus, Trophy, ClipboardPen, Bot } from "lucide-react";
+import { Activity, RefreshCw, CalendarCheck, History, X, Circle, CircleCheck, CloudRain, Sparkles, Lock, ChevronLeft, Undo2, Archive, Coffee, ArchiveRestore, Bell, BellOff, Plus, Trash2, BookmarkPlus, Trophy, ClipboardPen, Bot, ListChecks } from "lucide-react";
 import { CircleCheck as PastIc } from "lucide-react";
 import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, saveDayNote, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce, todayStr, getFinalReview, type FinalReview } from "../lib/tauri";
 
@@ -504,11 +504,21 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
           <>
             <div className="today-date"><span>{md(t.date)} 第{t.day_index}天{t.is_rest ? " · 休息日" : ""}</span></div>
             <h2 className="today-task">{t.title}</h2>
-            <p className="today-note">{t.detail || " "}</p>
+            {t.detail?.trim() ? (
+              <p className="today-detail-chip" title={t.detail}>{t.detail.trim()}</p>
+            ) : null}
             {t.tasks && t.tasks.length > 0 && (
-              <ul className="today-tasks">
-                {t.tasks.map((tk, k) => <li key={k}>{tk}</li>)}
-              </ul>
+              <div className="today-plan">
+                <div className="today-plan-label"><ListChecks size={14} />今日安排</div>
+                <ul className="today-plan-list">
+                  {t.tasks.map((tk, k) => (
+                    <li key={k}>
+                      <Circle size={12} className="today-plan-dot" aria-hidden />
+                      <span>{tk}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
             {ro ? (
               <div className="muted">归档版本只读{t.checked ? " · 当天已完成" : ""}</div>
@@ -616,13 +626,12 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
             </div>
             {d.past!.map((p) => (
               <div key={p.id} className="day-row-wrap">
-                <div className={`day-row has-note-line glass past-row${daySubLine(p) ? " has-sub" : ""}`}>
+                <div className={`day-row glass past-row${daySubLine(p) ? " has-sub" : ""}`}>
                   <span className="day-tag">第{p.day_index}天</span>
                   <span className="day-task">{p.title}</span>
                 {daySubLine(p) && <div className="day-sub" title={daySubLine(p)}>{daySubLine(p)}</div>}
                   <span className="day-meta">{md(p.date)}</span>
-                  <span className={`day-meta past-st ${p.is_rest && !p.checked ? "s-rest" : p.kind === "make_up" ? "s-makeup" : "s-done"}`}>{p.is_rest && !p.checked ? "休息" : p.kind === "make_up" ? "补打" : "已完成"}</span>
-                  <DayNoteEditor dayId={p.id} note={p.note || ""} readonly={ro} compact onSaved={() => { setError(""); void load(); }} onError={(e) => { setOkMsg(""); setError(e); }} />
+                  <span className={`day-meta past-st ${p.is_rest && !p.checked ? "s-rest" : "s-done"}`}>{p.is_rest && !p.checked ? "休息" : "已完成"}</span>
                 </div>
               </div>
             ))}
