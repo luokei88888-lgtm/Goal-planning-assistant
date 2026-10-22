@@ -83,6 +83,11 @@ pub fn save_day_note(app: AppHandle, plan_day_id: i64, note: String) -> Result<S
 }
 
 #[tauri::command]
+pub fn swap_plan_days(app: AppHandle, a_id: i64, b_id: i64) -> Result<(), String> {
+    service::swap_plan_days(&open(&app)?, a_id, b_id, &today())
+}
+
+#[tauri::command]
 pub fn create_goal_with_plan(app: AppHandle, goal: NewGoal) -> Result<i64, String> {
     service::create_goal_with_plan(&mut open(&app)?, &goal, now())
 }

@@ -363,6 +363,82 @@ pub fn save_day_note(conn: &Connection, plan_day_id: i64, note: &str, today: &st
 }
 
 
+
+/// 换休：互换两天的 title/detail/tasks/is_rest（保留各自 id/date/day_index/note；不互换打卡）。
+pub fn swap_plan_days(conn: &Connection, a_id: i64, b_id: i64, today: &str) -> R<()> {
+    if a_id == b_id {
+        return Err("请选择两个不同的日子对调".into());
+    }
+    // (version_id, date, title, detail, tasks_json, is_rest, vstatus, gstatus, checkin_id)
+    type DayRow = (i64, String, String, String, String, bool, String, String, Option<i64>);
+    let load = |id: i64| -> R<DayRow> {
+        let row: Option<DayRow> = conn
+            .query_row(
+                "SELECT d.plan_version_id, d.date, d.title, d.detail, d.tasks, d.is_rest,
+                        v.status, g.status, c.id
+                 FROM plan_days d
+                 JOIN plan_versions v ON v.id = d.plan_version_id
+                 JOIN goals g ON g.id = v.goal_id
+                 LEFT JOIN checkins c ON c.plan_day_id = d.id
+                 WHERE d.id = ?1",
+                [id],
+                |r| {
+                    Ok((
+                        r.get(0)?,
+                        r.get(1)?,
+                        r.get(2)?,
+                        r.get(3)?,
+                        r.get(4)?,
+                        r.get::<_, i64>(5)? != 0,
+                        r.get(6)?,
+                        r.get(7)?,
+                        r.get(8)?,
+                    ))
+                },
+            )
+            .optional()
+            .map_err(e)?;
+        row.ok_or_else(|| "找不到这一天的计划".into())
+    };
+    let (a_vid, a_date, a_title, a_detail, a_tasks, a_rest, a_vs, a_gs, a_ck) = load(a_id)?;
+    let (b_vid, b_date, b_title, b_detail, b_tasks, b_rest, b_vs, b_gs, b_ck) = load(b_id)?;
+
+    if a_vid != b_vid {
+        return Err("只能对调同一份计划里的两天".into());
+    }
+    if a_gs == "archived" || b_gs == "archived" {
+        return Err("目标已归档，只能查看，不能换休".into());
+    }
+    for vs in [&a_vs, &b_vs] {
+        match vs.as_str() {
+            "draft" => return Err("草案还没生效，不能换休".into()),
+            "archived" => return Err("这是归档的旧版本，只能查看，不能换休".into()),
+            _ => {}
+        }
+    }
+    if a_date.as_str() < today || b_date.as_str() < today {
+        return Err("过去的日子不能换休".into());
+    }
+    if a_rest == b_rest {
+        return Err("请选一个休息日和一个行动日对调".into());
+    }
+    if a_ck.is_some() || b_ck.is_some() {
+        return Err("已经打过卡的日子不能换休".into());
+    }
+
+    conn.execute(
+        "UPDATE plan_days SET title=?1, detail=?2, tasks=?3, is_rest=?4 WHERE id=?5",
+        params![b_title, b_detail, b_tasks, b_rest as i64, a_id],
+    )
+    .map_err(e)?;
+    conn.execute(
+        "UPDATE plan_days SET title=?1, detail=?2, tasks=?3, is_rest=?4 WHERE id=?5",
+        params![a_title, a_detail, a_tasks, a_rest as i64, b_id],
+    )
+    .map_err(e)?;
+    Ok(())
+}
+
 /// 新建目标并直接生效第 1 版计划（日期从 start_date 起逐日连续）
 pub fn create_goal_with_plan(conn: &mut Connection, g: &NewGoal, now: i64) -> R<i64> {
     let title = g.title.trim();
@@ -740,6 +816,108 @@ mod tests {
         assert_eq!(d.upcoming.len(), 1);
         assert!(d.upcoming[0].is_rest);
         assert!(d.upcoming[0].tasks.is_empty());
+    }
+
+
+    #[test]
+    fn swap_plan_days_success_keeps_note() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&conn).unwrap();
+        let days = vec![
+            NewDay {
+                title: "今天休息".into(),
+                detail: "轻量拉伸".into(),
+                tasks: vec![],
+                is_rest: true,
+            },
+            NewDay {
+                title: "力量日".into(),
+                detail: "深蹲为主".into(),
+                tasks: vec!["深蹲 4×12".into()],
+                is_rest: false,
+            },
+            NewDay {
+                title: "有氧".into(),
+                detail: String::new(),
+                tasks: vec!["慢跑".into()],
+                is_rest: false,
+            },
+        ];
+        let g = NewGoal {
+            title: "换休测".into(),
+            description: String::new(),
+            icon: None,
+            source: Some("manual".into()),
+            summary: String::new(),
+            start_date: "2026-10-22".into(),
+            days,
+        };
+        let id = create_goal_with_plan(&mut conn, &g, 1).unwrap();
+        let d = get_goal_detail(&conn, id, "2026-10-22", 5).unwrap();
+        let today = d.today.as_ref().unwrap().clone();
+        let next = d.upcoming[0].clone();
+        assert!(today.is_rest);
+        assert!(!next.is_rest);
+        save_day_note(&conn, today.id, "今天其实想打球", "2026-10-22").unwrap();
+
+        swap_plan_days(&conn, today.id, next.id, "2026-10-22").unwrap();
+
+        let d = get_goal_detail(&conn, id, "2026-10-22", 5).unwrap();
+        let t = d.today.as_ref().unwrap();
+        assert!(!t.is_rest);
+        assert_eq!(t.title, "力量日");
+        assert_eq!(t.detail, "深蹲为主");
+        assert_eq!(t.tasks, vec!["深蹲 4×12".to_string()]);
+        assert_eq!(t.note, "今天其实想打球", "备注应留在原日期");
+        assert_eq!(t.id, today.id, "id/date 不变");
+        assert_eq!(t.date, "2026-10-22");
+        let n = &d.upcoming[0];
+        assert!(n.is_rest);
+        assert_eq!(n.title, "今天休息");
+        assert_eq!(n.id, next.id);
+        assert!(n.note.is_empty());
+    }
+
+    #[test]
+    fn swap_plan_days_rejects_same_type() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&conn).unwrap();
+        let days = vec![
+            NewDay { title: "A".into(), detail: String::new(), tasks: vec!["a".into()], is_rest: false },
+            NewDay { title: "B".into(), detail: String::new(), tasks: vec!["b".into()], is_rest: false },
+            NewDay { title: "休".into(), detail: String::new(), tasks: vec![], is_rest: true },
+        ];
+        let g = NewGoal {
+            title: "同类型".into(), description: String::new(), icon: None, source: Some("manual".into()),
+            summary: String::new(), start_date: "2026-10-22".into(), days,
+        };
+        let id = create_goal_with_plan(&mut conn, &g, 1).unwrap();
+        let d = get_goal_detail(&conn, id, "2026-10-22", 5).unwrap();
+        let a = d.today.as_ref().unwrap().id;
+        let b = d.upcoming[0].id;
+        let err = swap_plan_days(&conn, a, b, "2026-10-22").unwrap_err();
+        assert!(err.contains("休息日") && err.contains("行动日"), "{err}");
+    }
+
+    #[test]
+    fn swap_plan_days_rejects_checked() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&conn).unwrap();
+        let days = vec![
+            NewDay { title: "练".into(), detail: String::new(), tasks: vec!["x".into()], is_rest: false },
+            NewDay { title: "休".into(), detail: String::new(), tasks: vec![], is_rest: true },
+        ];
+        let g = NewGoal {
+            title: "已打卡".into(), description: String::new(), icon: None, source: Some("manual".into()),
+            summary: String::new(), start_date: "2026-10-22".into(), days,
+        };
+        let id = create_goal_with_plan(&mut conn, &g, 1).unwrap();
+        let d = get_goal_detail(&conn, id, "2026-10-22", 5).unwrap();
+        let today = d.today.as_ref().unwrap().id;
+        let rest = d.upcoming[0].id;
+        check_in(&conn, today, "2026-10-22", 1).unwrap();
+        let err = swap_plan_days(&conn, today, rest, "2026-10-22").unwrap_err();
+        assert!(err.contains("打过卡") || err.contains("打卡"), "{err}");
     }
 
     #[test]

@@ -3,9 +3,9 @@ import { askConfirm } from "../components/ConfirmDialog";
 import { useRoll, confetti, celebrateToast } from "../lib/motion";
 import { TimePicker } from "../components/TimePicker";
 import { createPortal } from "react-dom";
-import { Activity, RefreshCw, CalendarCheck, History, X, Circle, CircleCheck, CloudRain, Sparkles, Lock, ChevronLeft, Undo2, Archive, Coffee, ArchiveRestore, Bell, BellOff, Plus, Trash2, BookmarkPlus, Trophy, ClipboardPen, Bot, ListChecks, Dumbbell, Leaf } from "lucide-react";
+import { Activity, RefreshCw, CalendarCheck, History, X, Circle, CircleCheck, CloudRain, Sparkles, Lock, ChevronLeft, Undo2, Archive, Coffee, ArchiveRestore, Bell, BellOff, Plus, Trash2, BookmarkPlus, Trophy, ClipboardPen, Bot, ListChecks, Dumbbell, Leaf, ArrowLeftRight } from "lucide-react";
 import { CircleCheck as PastIc } from "lucide-react";
-import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, saveDayNote, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce, getFinalReview, type FinalReview } from "../lib/tauri";
+import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, saveDayNote, swapPlanDays, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce, getFinalReview, type FinalReview } from "../lib/tauri";
 
 
 /** 列表行第二行文案：优先任务清单，否则 detail；空则不渲染。 */
@@ -251,6 +251,86 @@ function DayNoteEditor({
 }
 
 
+
+function SwapRestModal({
+  goalId, versionNo, today, onClose, onDone,
+}: {
+  goalId: number; versionNo: number; today: DayItem; onClose: () => void; onDone: () => void;
+}) {
+  const [cands, setCands] = useState<DayItem[]>([]);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    versionDays(goalId, versionNo)
+      .then((days) => {
+        setCands(days.filter((x) => x.date > today.date && x.is_rest !== today.is_rest && !x.checked));
+      })
+      .catch((e) => setErr(String(e)));
+  }, [goalId, versionNo, today.date, today.is_rest]);
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [onClose]);
+  const pick = async (other: DayItem) => {
+    const bLabel = `${md(other.date)}「${other.title}」`;
+    const tip = today.is_rest
+      ? `把 ${bLabel} 的安排挪到今天，今天的休息挪到 ${md(other.date)}。确定换休？`
+      : `把今天的安排挪到 ${md(other.date)}，把 ${bLabel} 的休息挪到今天。确定换休？`;
+    if (!(await askConfirm(tip, { title: "换休", ok: "对调" }))) return;
+    setBusy(true); setErr("");
+    try {
+      await swapPlanDays(today.id, other.id);
+      onDone();
+      onClose();
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return createPortal(
+    <div className="modal-mask" onClick={onClose}>
+      <div className="plan-modal swap-modal" onClick={(e) => e.stopPropagation()}>
+        <header className="plan-head">
+          <div>
+            <div className="plan-kicker"><ArrowLeftRight size={16} />换休</div>
+            <h2>{today.is_rest ? "选一个行动日，和今天的休息对调" : "选一个休息日，和今天的安排对调"}</h2>
+          </div>
+          <button type="button" className="icon-btn" title="关闭" onClick={onClose}><X size={20} /></button>
+        </header>
+        {err && <div className="error-line">{err}</div>}
+        <div className="plan-meta">
+          <div><b>今天</b>{md(today.date)} · 第{today.day_index}天 · {today.title}{today.is_rest ? "（休息日）" : ""}</div>
+        </div>
+        <div className="plan-body">
+          {cands.length === 0 && !err && (
+            <div className="muted" style={{ padding: "24px 8px" }}>后面没有可对调的日子（需要「未打卡」且与今天休息/行动属性相反）。</div>
+          )}
+          {cands.map((x) => (
+            <button
+              key={x.id}
+              type="button"
+              className={`plan-day swap-cand ${x.is_rest ? "rest" : ""}`}
+              disabled={busy}
+              onClick={() => void pick(x)}
+            >
+              <div className="pd-left"><div className="pd-n">第{x.day_index}天</div><div className="pd-date">{md(x.date)}</div></div>
+              <div className="pd-main">
+                <div className="pd-title">{x.is_rest && <Coffee size={15} />}{x.title}{x.is_rest && <em>休息日</em>}</div>
+                {x.detail && <div className="pd-detail">{x.detail}</div>}
+                {x.tasks && x.tasks.length > 0 && <ul>{x.tasks.map((tk, k) => <li key={k}>{tk}</li>)}</ul>}
+              </div>
+              <span className="swap-cand-go">对调</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function VersionsModal({ goalId, onClose }: { goalId: number; onClose: () => void }) {
   const [list, setList] = useState<VersionInfo[]>([]);
   const [sel, setSel] = useState<number | null>(null);
@@ -412,6 +492,7 @@ function TodayPlanBlock({ detail, tasks }: { detail?: string | null; tasks?: str
 
 export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalReview }: Props) {
   const [showVers, setShowVers] = useState(false);
+  const [showSwap, setShowSwap] = useState(false);
   const [rem, setRem] = useState<GoalReminders | null>(null);
   const [showRem, setShowRem] = useState(false);
   useEffect(() => { getGoalReminders(goalId).then(setRem).catch(() => {}); }, [goalId]);
@@ -496,6 +577,9 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
   const pct = rawPct;
   const t = d.today;
   const ro = d.readonly;
+  const canSwap = Boolean(
+    t && !ro && d.status === "active" && d.version_no != null && (t.is_rest || !t.checked)
+  );
   // 已完成 / 归档（今日卡换成总结或无今日）时默认展开，保证可达
   const pastOpen = pastOpenS ?? d.status !== "active";
   const pastN = d.past?.length ?? 0;
@@ -541,6 +625,15 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
       {okMsg && <div className="ok-line">{okMsg}</div>}
       {showRem && <ReminderModal goalId={goalId} title={d.title} onClose={() => setShowRem(false)} onSaved={(r) => { setRem(r); setShowRem(false); }} />}
       {showVers && <VersionsModal goalId={goalId} onClose={() => setShowVers(false)} />}
+      {showSwap && t && d.version_no != null && (
+        <SwapRestModal
+          goalId={goalId}
+          versionNo={d.version_no}
+          today={t}
+          onClose={() => setShowSwap(false)}
+          onDone={() => { setOkMsg("已换休"); void load(); }}
+        />
+      )}
 
       {d.status === "archived" && finalRv && (finalRv.went_well || finalRv.hard || finalRv.next_plan || finalRv.ai_comment) && (
         <section className="fr-card-summary glass" style={{ margin: "0 0 12px" }}>
@@ -582,25 +675,38 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
                         <div className="today-date"><span>{md(t.date)} 第{t.day_index}天{t.is_rest ? " · 休息日" : ""}</span></div>
             <div className="today-title-row">
               <h2 className="today-task">{t.title}</h2>
-              {!ro && !t.is_rest && (
-                <button
-                  type="button"
-                  className={`today-check-pill ${t.checked ? "done" : ""}`}
-                  disabled={busy}
-                  title={t.checked ? "再点一次可撤销今天的打卡" : "完成今天打卡"}
-                  onClick={() => (t.checked ? run(() => undoCheckIn(t.id)) : doCheckIn(t.id))}
-                >
-                  {t.checked ? (
-                    <>
-                      <span key={pop} className={pop ? "m-pop" : ""}><CircleCheck size={16} /></span>
-                      今天已打
-                      <Undo2 size={14} className="undo-hint" />
-                    </>
-                  ) : (
-                    <><CircleCheck size={16} />完成今天</>
-                  )}
-                </button>
-              )}
+              <div className="today-title-actions">
+                {canSwap && (
+                  <button
+                    type="button"
+                    className="swap-rest-btn"
+                    disabled={busy}
+                    title={t.is_rest ? "把今天的休息和后面某天对调" : "把今天的安排和后面某个休息日对调"}
+                    onClick={() => setShowSwap(true)}
+                  >
+                    <ArrowLeftRight size={14} />换休
+                  </button>
+                )}
+                {!ro && !t.is_rest && (
+                  <button
+                    type="button"
+                    className={`today-check-pill ${t.checked ? "done" : ""}`}
+                    disabled={busy}
+                    title={t.checked ? "再点一次可撤销今天的打卡" : "完成今天打卡"}
+                    onClick={() => (t.checked ? run(() => undoCheckIn(t.id)) : doCheckIn(t.id))}
+                  >
+                    {t.checked ? (
+                      <>
+                        <span key={pop} className={pop ? "m-pop" : ""}><CircleCheck size={16} /></span>
+                        今天已打
+                        <Undo2 size={14} className="undo-hint" />
+                      </>
+                    ) : (
+                      <><CircleCheck size={16} />完成今天</>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
             {ro ? (
               <div className="muted today-ro-hint">归档版本只读{t.checked ? " · 当天已完成" : ""}</div>

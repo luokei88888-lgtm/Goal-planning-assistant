@@ -1380,6 +1380,33 @@ html[data-theme="brutal"] .status-pill .st-text { font-weight: 600; font-size: 1
               0 2px 10px color-mix(in srgb, var(--pink2, #a855f7) 18%, transparent);
 }
 .today-check-pill.done .undo-hint { opacity: .7; }
+
+.today-title-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.swap-rest-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  color: var(--text-dim, #8a90a2); background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12); cursor: pointer;
+}
+.swap-rest-btn:hover:not(:disabled) { color: var(--cyan, #5ce1ff); border-color: rgba(92,225,255,.45); background: rgba(92,225,255,.1); }
+.swap-rest-btn:disabled { opacity: .55; cursor: default; }
+.swap-modal { width: min(560px, 100%); height: min(78vh, 100%); }
+button.plan-day.swap-cand {
+  width: 100%; text-align: left; cursor: pointer;
+  display: flex; align-items: flex-start; gap: 12px;
+  background: transparent; border: 1px solid transparent; border-radius: 12px;
+  padding: 10px 8px; color: inherit; font: inherit;
+}
+button.plan-day.swap-cand:hover:not(:disabled) {
+  border-color: rgba(92,225,255,.35); background: rgba(92,225,255,.06);
+}
+button.plan-day.swap-cand:disabled { opacity: .55; cursor: default; }
+.swap-cand-go {
+  margin-left: auto; align-self: center; flex-shrink: 0;
+  padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  color: var(--cyan, #5ce1ff); border: 1px solid rgba(92,225,255,.4);
+}
+
 .today-ro-hint { margin: 0 auto 10px; width: min(640px, 100%); text-align: left; }
 
 /* ---- detail list soft panels (C) ---- */

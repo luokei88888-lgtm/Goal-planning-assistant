@@ -34,6 +34,7 @@ export const checkIn = (planDayId: number) => invoke<void>("check_in", { planDay
 export const makeUpCheckIn = (planDayId: number) => invoke<void>("make_up_check_in", { planDayId });
 export const undoCheckIn = (planDayId: number) => invoke<void>("undo_check_in", { planDayId });
 export const saveDayNote = (planDayId: number, note: string) => invoke<string>("save_day_note", { planDayId, note });
+export const swapPlanDays = (aId: number, bId: number) => invoke<void>("swap_plan_days", { aId, bId });
 export const createGoalWithPlan = (goal: NewGoal) => invoke<number>("create_goal_with_plan", { goal });
 export const archiveGoal = (goalId: number) => invoke<void>("archive_goal", { goalId });
 export const importSampleGoal = () => invoke<number>("import_sample_goal");

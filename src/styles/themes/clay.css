@@ -25,3 +25,27 @@ html[data-theme="clay"] .kpi:nth-child(4n+2) { background: #ffd9e8 !important; }
 html[data-theme="clay"] .kpi:nth-child(4n+3) { background: #fff1c4 !important; }
 html[data-theme="clay"] .kpi:nth-child(4n) { background: #dcdcff !important; }
 html[data-theme="clay"] .bubble-ai { background: #ffffff !important; }
+
+/* 换休：贴合黏土风圆角软钮 */
+html[data-theme="clay"] .swap-rest-btn {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(120, 100, 90, 0.18);
+  box-shadow: 2px 2px 6px rgba(160, 140, 120, 0.18), inset 1px 1px 0 rgba(255,255,255,.6);
+  color: #6b5e56;
+}
+html[data-theme="clay"] .swap-rest-btn:hover:not(:disabled) {
+  color: #3d7ea6;
+  border-color: rgba(61, 126, 166, 0.35);
+  background: rgba(255, 255, 255, 0.75);
+}
+html[data-theme="clay"] button.plan-day.swap-cand:hover:not(:disabled) {
+  border-color: rgba(61, 126, 166, 0.28);
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 16px;
+}
+html[data-theme="clay"] .swap-cand-go {
+  border-radius: 12px;
+  color: #3d7ea6;
+  border-color: rgba(61, 126, 166, 0.35);
+}
