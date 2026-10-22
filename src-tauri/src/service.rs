@@ -712,10 +712,7 @@ mod tests {
             NewDay {
                 title: "全身力量入门 B".into(),
                 detail: "饮食：主食每餐一份为拳头大小、蛋白质、蔬菜。".into(),
-                tasks: vec![
-                    "蹲式/腿举深蹲 3×12".into(),
-                    "记录全天饮食".into(),
-                ],
+                tasks: vec!["蹲式/腿举深蹲 3×12".into()],
                 is_rest: false,
             },
             NewDay {
@@ -738,7 +735,7 @@ mod tests {
         let d = get_goal_detail(&conn, id, "2026-10-22", 5).unwrap();
         let today = d.today.as_ref().expect("today");
         assert_eq!(today.title, "全身力量入门 B");
-        assert_eq!(today.tasks, vec!["蹲式/腿举深蹲 3×12".to_string(), "记录全天饮食".to_string()]);
+        assert_eq!(today.tasks, vec!["蹲式/腿举深蹲 3×12".to_string()]);
         assert!(today.detail.contains("饮食"));
         assert_eq!(d.upcoming.len(), 1);
         assert!(d.upcoming[0].is_rest);
