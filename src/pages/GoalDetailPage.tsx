@@ -5,7 +5,7 @@ import { TimePicker } from "../components/TimePicker";
 import { createPortal } from "react-dom";
 import { Activity, RefreshCw, CalendarCheck, History, X, Circle, CircleCheck, CloudRain, Sparkles, Lock, ChevronLeft, Undo2, Archive, Coffee, ArchiveRestore, Bell, BellOff, Plus, Trash2, BookmarkPlus, Trophy, ClipboardPen, Bot, ListChecks, Dumbbell, Leaf } from "lucide-react";
 import { CircleCheck as PastIc } from "lucide-react";
-import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, saveDayNote, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce, todayStr, getFinalReview, type FinalReview } from "../lib/tauri";
+import { getGoalDetail, checkIn, undoCheckIn, makeUpCheckIn, saveDayNote, archiveGoal, restoreGoal, md, listVersions, versionDays, type GoalDetail, type VersionInfo, type DayItem, getGoalReminders, saveGoalReminders, type GoalReminders, saveGoalAsTemplate, getStats, celebrateOnce, getFinalReview, type FinalReview } from "../lib/tauri";
 
 
 /** 列表行第二行文案：优先任务清单，否则 detail；空则不渲染。 */
