@@ -76,6 +76,18 @@ html:not([data-theme="neon"]) .cl-btn.primary, html:not([data-theme="neon"]) .pf
   box-shadow: var(--t-pri-shadow) !important; border-radius: var(--t-pri-radius) !important; letter-spacing: var(--t-pri-ls, normal); }
 html:not([data-theme="neon"]) .checkin-btn:not(.done) svg, html:not([data-theme="neon"]) .gd-btn.primary svg { color: inherit !important; }
 html:not([data-theme="neon"]) .checkin-btn.done { color: var(--t-accent) !important; }
+html:not([data-theme="neon"]) .today-check-pill:not(.done) {
+  background: var(--t-fill) !important; color: #fff !important;
+  box-shadow: var(--t-btn-shadow) !important; border: none !important;
+}
+html:not([data-theme="neon"]) .today-check-pill:not(.done) svg { color: inherit !important; }
+html:not([data-theme="neon"]) .today-check-pill.done {
+  color: var(--t-accent) !important;
+  background: color-mix(in srgb, var(--t-accent) 12%, transparent) !important;
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--t-accent) 50%, transparent) !important;
+}
+html:not([data-theme="neon"]) .today-title-row .today-task { text-shadow: none !important; }
+
 html:not([data-theme="neon"]) .danger-btn, html:not([data-theme="neon"]) .cl-btn.danger {
   background: var(--t-danger) !important; color: #fff !important; border: var(--t-pri-border) !important;
   box-shadow: var(--t-pri-shadow-plain, var(--t-btn-shadow)) !important; border-radius: var(--t-pri-radius) !important; }

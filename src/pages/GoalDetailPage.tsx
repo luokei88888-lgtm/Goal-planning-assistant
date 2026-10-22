@@ -587,27 +587,40 @@ export function GoalDetailPage({ goalId, onBack, onRevise, onReview, onFinalRevi
           </div>
         ) : t ? (
           <>
-            <div className="today-date"><span>{md(t.date)} 第{t.day_index}天{t.is_rest ? " · 休息日" : ""}</span></div>
-            <h2 className="today-task">{t.title}</h2>
-                        <TodayPlanBlock detail={t.detail} tasks={t.tasks} />
+                        <div className="today-date"><span>{md(t.date)} 第{t.day_index}天{t.is_rest ? " · 休息日" : ""}</span></div>
+            <div className="today-title-row">
+              <h2 className="today-task">{t.title}</h2>
+              {!ro && !t.is_rest && (
+                <button
+                  type="button"
+                  className={`today-check-pill ${t.checked ? "done" : ""}`}
+                  disabled={busy}
+                  title={t.checked ? "再点一次可撤销今天的打卡" : "完成今天打卡"}
+                  onClick={() => (t.checked ? run(() => undoCheckIn(t.id)) : doCheckIn(t.id))}
+                >
+                  {t.checked ? (
+                    <>
+                      <span key={pop} className={pop ? "m-pop" : ""}><CircleCheck size={16} /></span>
+                      今天已打
+                      <Undo2 size={14} className="undo-hint" />
+                    </>
+                  ) : (
+                    <><CircleCheck size={16} />完成今天</>
+                  )}
+                </button>
+              )}
+            </div>
             {ro ? (
-              <div className="muted">归档版本只读{t.checked ? " · 当天已完成" : ""}</div>
+              <div className="muted today-ro-hint">归档版本只读{t.checked ? " · 当天已完成" : ""}</div>
             ) : t.is_rest ? (
-              <div className="muted">今天是休息日，不用打卡{t.checked ? " · 若误打可撤销" : ""}
+              <div className="muted today-ro-hint">今天是休息日，不用打卡{t.checked ? " · 若误打可撤销" : ""}
                 {t.checked && (
                   <button type="button" className="mini-btn" style={{ marginLeft: 8 }} disabled={busy}
                     onClick={() => run(() => undoCheckIn(t.id))}>撤销</button>
                 )}
               </div>
-            ) : (
-              <button type="button" className={`checkin-btn ${t.checked ? "done" : ""}`} disabled={busy}
-                title={t.checked ? "再点一次可撤销今天的打卡" : undefined}
-                onClick={() => (t.checked ? run(() => undoCheckIn(t.id)) : doCheckIn(t.id))}>
-                {t.checked
-                  ? <>今天已打<span key={pop} className={pop ? "m-pop" : ""}><CircleCheck size={26} /></span><Undo2 size={18} className="undo-hint" /></>
-                  : <>完成今天<CircleCheck size={30} /></>}
-              </button>
-            )}
+            ) : null}
+            <TodayPlanBlock detail={t.detail} tasks={t.tasks} />
           </>
         ) : (
           <>
