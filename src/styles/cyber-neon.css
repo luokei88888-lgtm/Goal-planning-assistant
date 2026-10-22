@@ -1189,3 +1189,24 @@ html[data-theme="brutal"] .status-pill .st-text { font-weight: 600; font-size: 1
 /* 主题列表 4 个：宽 1x4、窄 2x2，不出现半行 */
 .theme-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 960px) { .theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---- chat image attachments ---- */
+.chat-compose { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.chat-thumbs { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 4px; }
+.chat-thumb { position: relative; width: 64px; height: 64px; border-radius: 12px; overflow: hidden;
+  border: 1.5px solid color-mix(in srgb, var(--cyan) 55%, transparent);
+  box-shadow: 0 2px 8px rgba(0,0,0,.12); background: color-mix(in srgb, var(--card, #fff) 80%, transparent); }
+.chat-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb-x { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center; border: none; cursor: pointer;
+  background: rgba(0,0,0,.55); color: #fff; padding: 0; }
+.thumb-x:disabled { opacity: .5; cursor: default; }
+.attach-btn { color: var(--cyan); display: grid; place-items: center; margin-bottom: 8px; flex-shrink: 0;
+  background: transparent; border: none; cursor: pointer; padding: 4px;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--cyan) 50%, transparent)); }
+.attach-btn:disabled { opacity: .4; cursor: default; }
+.attach-btn:hover:not(:disabled) { color: var(--pink); }
+.bubble-imgs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.bubble-img { max-width: min(220px, 100%); max-height: 180px; border-radius: 10px; object-fit: cover;
+  border: 1px solid color-mix(in srgb, var(--cyan) 40%, transparent); display: block; }
+.bubble-user:has(.bubble-imgs) { display: flex; flex-direction: column; align-items: flex-start; }

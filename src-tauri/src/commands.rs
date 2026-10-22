@@ -15,6 +15,10 @@ fn app_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
     app.path().app_data_dir().map_err(|e| format!("无法获取应用数据目录: {e}"))
 }
 
+fn img_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    chat::ensure_images_dir(&app_dir(app)?)
+}
+
 /// 每次访问都按 config.json 解析数据库位置，所以更改位置后运行中即时切换
 fn open(app: &AppHandle) -> Result<Connection, String> {
     let conn = crate::dblocation::open_current(&app_dir(app)?)?;
@@ -225,7 +229,8 @@ pub fn chat_get_session(app: AppHandle, session_id: Option<i64>) -> Result<ChatS
         Some(id) => id,
         None => chat::latest_or_new(&conn, now())?,
     };
-    chat::get_session(&conn, sid, &today())
+    let img = img_dir(&app)?;
+    chat::get_session(&conn, sid, &today(), Some(&img))
 }
 
 /// goal_id 有值 = 新建该目标的改方案会话
@@ -236,7 +241,8 @@ pub fn chat_new_session(app: AppHandle, goal_id: Option<i64>) -> Result<ChatSess
         Some(g) => chat::new_goal_session(&conn, g, now())?,
         None => chat::new_session(&conn, now())?,
     };
-    chat::get_session(&conn, sid, &today())
+    let img = img_dir(&app)?;
+    chat::get_session(&conn, sid, &today(), Some(&img))
 }
 
 /// 打开目标的改方案会话（最近一个，没有就新建）
@@ -244,7 +250,8 @@ pub fn chat_new_session(app: AppHandle, goal_id: Option<i64>) -> Result<ChatSess
 pub fn chat_goal_session(app: AppHandle, goal_id: i64) -> Result<ChatSession, String> {
     let conn = open(&app)?;
     let sid = chat::goal_session(&conn, goal_id, now())?;
-    chat::get_session(&conn, sid, &today())
+    let img = img_dir(&app)?;
+    chat::get_session(&conn, sid, &today(), Some(&img))
 }
 
 // ---------------- 流式 ----------------
@@ -291,14 +298,66 @@ pub fn chat_stop(app: AppHandle, stream_id: String) {
 }
 
 
-/// text 为空 = 重试（对最后一条用户消息重新请求）。增量通过 on_event 推给前端，结束后返回完整会话
+/// text 为空 = 重试（对最后一条用户消息重新请求）。images 为本次新发的图片（base64，不含 data: 前缀）。
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatImageIn {
+    pub mime: String,
+    pub data_base64: String,
+    pub name: Option<String>,
+}
+
+const MAX_CHAT_IMAGES: usize = 4;
+const MAX_CHAT_IMAGE_BYTES: usize = 4 * 1024 * 1024; // 压缩后单张上限
+
+fn normalize_image_mime(m: &str) -> Result<&'static str, String> {
+    match m.to_ascii_lowercase().as_str() {
+        "image/jpeg" | "image/jpg" => Ok("image/jpeg"),
+        "image/png" => Ok("image/png"),
+        "image/gif" => Ok("image/gif"),
+        "image/webp" => Ok("image/webp"),
+        other => Err(format!("不支持的图片格式：{other}（请用 JPEG / PNG / GIF / WebP）")),
+    }
+}
+
 #[tauri::command]
-pub async fn chat_send(app: AppHandle, session_id: i64, text: Option<String>, stream_id: String, on_event: Channel<StreamEvent>) -> Result<ChatSession, String> {
+pub async fn chat_send(
+    app: AppHandle,
+    session_id: i64,
+    text: Option<String>,
+    images: Option<Vec<ChatImageIn>>,
+    stream_id: String,
+    on_event: Channel<StreamEvent>,
+) -> Result<ChatSession, String> {
     let cfg = llm_config(&app)?;
+    let imgs = images.unwrap_or_default();
+    if imgs.len() > MAX_CHAT_IMAGES {
+        return Err(format!("一次最多发送 {MAX_CHAT_IMAGES} 张图片"));
+    }
     let msgs = {
         let conn = open(&app)?;
-        if let Some(t) = text.as_deref().filter(|t| !t.trim().is_empty()) {
-            chat::add_user(&conn, session_id, t, now())?;
+        let has_text = text.as_deref().is_some_and(|t| !t.trim().is_empty());
+        if has_text || !imgs.is_empty() {
+            let dir = img_dir(&app)?;
+            let mut metas = Vec::with_capacity(imgs.len());
+            for (i, img) in imgs.iter().enumerate() {
+                let mime = normalize_image_mime(&img.mime)?;
+                let bytes = chat::base64_decode(&img.data_base64)?;
+                if bytes.is_empty() {
+                    return Err("图片内容为空".into());
+                }
+                if bytes.len() > MAX_CHAT_IMAGE_BYTES {
+                    return Err(format!("单张图片不能超过 {} MB（请压缩后再发）", MAX_CHAT_IMAGE_BYTES / 1024 / 1024));
+                }
+                let id = format!("{:x}_{i}", now().wrapping_mul(1000).wrapping_add(i as i64));
+                chat::save_image_bytes(&dir, &id, mime, &bytes)?;
+                metas.push(chat::ChatAttachmentMeta {
+                    id,
+                    mime: mime.into(),
+                    name: img.name.clone().unwrap_or_default(),
+                });
+            }
+            chat::add_user_ex(&conn, session_id, text.as_deref().unwrap_or(""), &metas, now())?;
         } else {
             chat::drop_interrupted_tail(&conn, session_id)?;
         }
@@ -306,7 +365,8 @@ pub async fn chat_send(app: AppHandle, session_id: i64, text: Option<String>, st
             Some(g) => llm::revise_prompt(&today(), &revise::plan_context(&conn, g, &today())?),
             None => llm::system_prompt(&today()),
         };
-        chat::history_for_model(&conn, session_id, system)?
+        let dir = img_dir(&app).ok();
+        chat::history_for_model(&conn, session_id, system, dir.as_deref())?
     };
     let guard = StreamGuard::new(&app, &stream_id);
     let r = llm::stream_ex(&cfg, msgs, cfg.max_tokens.max(16384), &guard.flag, serde_json::json!({}), llm::IDLE_SECS, |c| {
@@ -316,8 +376,18 @@ pub async fn chat_send(app: AppHandle, session_id: i64, text: Option<String>, st
         });
         false
     })
-    .await?;
+    .await;
     drop(guard);
+    let r = match r {
+        Ok(v) => v,
+        Err(e) => {
+            let low = e.to_lowercase();
+            if low.contains("image") || low.contains("vision") || low.contains("multimodal") || low.contains("unsupported") {
+                return Err(format!("{e}（当前模型可能不支持识图，请换 deepseek-flash 等视觉模型）"));
+            }
+            return Err(e);
+        }
+    };
     let conn = open(&app)?;
     if r.finish.as_deref() == Some("network") && !r.stopped {
         chat::add_assistant_net(&conn, session_id, &r.text, now())?;
@@ -325,7 +395,8 @@ pub async fn chat_send(app: AppHandle, session_id: i64, text: Option<String>, st
         let truncated = r.finish.as_deref() == Some("length");
         chat::add_assistant_ex(&conn, session_id, &r.text, truncated, r.stopped, &today(), now())?;
     }
-    chat::get_session(&conn, session_id, &today())
+    let img = img_dir(&app)?;
+    chat::get_session(&conn, session_id, &today(), Some(&img))
 }
 
 #[tauri::command]
@@ -341,7 +412,8 @@ pub fn chat_rename_session(app: AppHandle, session_id: i64, title: String) -> Re
 #[tauri::command]
 pub fn chat_delete_session(app: AppHandle, session_id: i64) -> Result<(), String> {
     let mut conn = open(&app)?;
-    let _ = chat::purge_deleted(&mut conn, now());
+    let img = img_dir(&app).ok();
+    let _ = chat::purge_deleted(&mut conn, now(), img.as_deref());
     chat::delete_session(&mut conn, session_id, now())
 }
 
@@ -388,6 +460,9 @@ pub fn confirm_draft(app: AppHandle, message_id: i64, from_tomorrow: Option<bool
 #[tauri::command]
 pub fn factory_reset(app: AppHandle) -> Result<(), String> {
     service::factory_reset(&mut open(&app)?)?;
+    if let Ok(d) = app_dir(&app) {
+        chat::clear_images_dir(&d);
+    }
     let failed: Vec<&str> = providers::PROVIDERS.iter()
         .filter(|p| secret::delete_key(p.id).is_err())
         .map(|p| p.name)

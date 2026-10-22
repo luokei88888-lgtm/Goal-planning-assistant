@@ -48,10 +48,12 @@ export type ProviderView = {
 export type SettingsView = { provider: string; model: string; base_url: string; has_key: boolean; key_mask: string | null; providers: ProviderView[] };
 export type DraftDay = { title: string; detail: string; tasks: string[]; is_rest: boolean };
 export type DraftPlan = { title: string; summary: string; start_date: string; days_count: number; days: DraftDay[] };
+export type ChatAttachment = { id: string; mime: string; name: string; data_url: string };
+export type ChatImageIn = { mime: string; dataBase64: string; name?: string };
 export type ChatMessage = {
   id: number; role: "user" | "assistant"; text: string; draft: DraftPlan | null;
   draft_error: string | null; confirmed_goal_id: number | null; confirmed_version: number | null;
-  diff: DraftDiff | null; created_at: number;
+  diff: DraftDiff | null; created_at: number; attachments: ChatAttachment[];
 };
 export type DraftDiff = {
   base_version: number; next_version: number; keep_past: number; old_remaining: number; new_remaining: number;
@@ -84,8 +86,8 @@ const channel = (onDelta: (t: string) => void, onReason?: (t: string) => void) =
   return ch;
 };
 export const newStreamId = () => `s${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
-export const chatSend = (sessionId: number, text: string | null, streamId: string, onDelta: (t: string) => void, onReason?: (t: string) => void) =>
-  invoke<ChatSession>("chat_send", { sessionId, text, streamId, onEvent: channel(onDelta, onReason) }).then(
+export const chatSend = (sessionId: number, text: string | null, streamId: string, onDelta: (t: string) => void, onReason?: (t: string) => void, images?: ChatImageIn[]) =>
+  invoke<ChatSession>("chat_send", { sessionId, text, images: images?.length ? images : null, streamId, onEvent: channel(onDelta, onReason) }).then(
     (v) => {
       const last = v.messages[v.messages.length - 1];
       if (last?.draft_error?.startsWith("NET:")) reportChatResult(false, "连接中断"); else reportChatResult(true);

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Markdown } from "../components/Markdown";
-import { MessageSquareMore, SquarePen, Settings, UserRound, Crosshair, CircleCheck, FileText, PencilLine, Send, Sparkles, RotateCw, TriangleAlert, Loader, ListChecks, X, Coffee, ChevronLeft, GitCompare, Square, History, Pencil, Trash2, Check, Target, WifiOff, Undo2 } from "lucide-react";
-import { chatGetSession, chatNewSession, chatSend, confirmDraft, chatGoalSession, chatStop, newStreamId, chatListSessions, chatRenameSession, chatDeleteSession, chatUndoDeleteSession, goalTodayChecked, type SessionItem, md, type ChatSession, type DraftPlan, type DraftDiff } from "../lib/tauri";
+import { MessageSquareMore, SquarePen, Settings, UserRound, Crosshair, CircleCheck, FileText, PencilLine, Send, Sparkles, RotateCw, TriangleAlert, Loader, ListChecks, X, Coffee, ChevronLeft, GitCompare, Square, History, Pencil, Trash2, Check, Target, WifiOff, Undo2, ImagePlus } from "lucide-react";
+import { chatGetSession, chatNewSession, chatSend, confirmDraft, chatGoalSession, chatStop, newStreamId, chatListSessions, chatRenameSession, chatDeleteSession, chatUndoDeleteSession, goalTodayChecked, type SessionItem, md, type ChatSession, type DraftPlan, type DraftDiff, type ChatAttachment, type ChatImageIn } from "../lib/tauri";
 
 type Props = { onOpenGoal: (id: number) => void; onGoSettings: () => void; goalId?: number; prefill?: string; onBack?: () => void };
 
@@ -287,6 +287,40 @@ function DraftCard({ d, diff, confirmedVersion, confirmedId, busy, onConfirm, on
   );
 }
 
+
+const MAX_CHAT_IMAGES = 4;
+const MAX_EDGE = 1280;
+const JPEG_QUALITY = 0.8;
+
+type PendingImage = { key: string; mime: string; dataBase64: string; name: string; preview: string };
+
+async function fileToPending(file: File): Promise<PendingImage> {
+  if (!file.type.startsWith("image/")) throw new Error("只能发送图片文件");
+  const bitmap = await createImageBitmap(file);
+  try {
+    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("无法处理图片");
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    const blob: Blob = await new Promise((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("压缩失败"))), "image/jpeg", JPEG_QUALITY),
+    );
+    if (blob.size > 4 * 1024 * 1024) throw new Error("图片过大，请换一张更小的");
+    const buf = new Uint8Array(await blob.arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+    const dataBase64 = btoa(bin);
+    const preview = `data:image/jpeg;base64,${dataBase64}`;
+    return { key: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, mime: "image/jpeg", dataBase64, name: file.name || "image.jpg", preview };
+  } finally {
+    bitmap.close();
+  }
+}
+
 export function ChatPage({ onOpenGoal, onGoSettings, goalId, prefill, onBack }: Props) {
   const [s, setS] = useState<ChatSession | null>(null);
   const [input, setInput] = useState("");
@@ -302,6 +336,8 @@ export function ChatPage({ onOpenGoal, onGoSettings, goalId, prefill, onBack }: 
   const undoTimer = useRef<number | undefined>(undefined);
   const [otherHint, setOtherHint] = useState(false);
   const [ask, setAsk] = useState<{ mid: number; tomorrow: boolean; checked: boolean } | null>(null);
+  const [pending, setPending] = useState<PendingImage[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const reviseMode = s ? s.goal_id !== null : goalId !== undefined;
   const busyRef = useRef(false);
@@ -328,23 +364,42 @@ export function ChatPage({ onOpenGoal, onGoSettings, goalId, prefill, onBack }: 
   }, [goalId]);
   useEffect(() => { streamRef.current?.scrollTo({ top: streamRef.current.scrollHeight }); }, [s, busy, live]);
 
-  const send = async (text: string | null) => {
+  const send = async (text: string | null, imgs?: PendingImage[]) => {
     if (!s || busy || busyRef.current) return;
-    if (text !== null && !text.trim()) return;
+    const batch = imgs ?? [];
+    if (text !== null && !text.trim() && !batch.length) return;
     busyRef.current = true;
     setBusy(true); setError("");
     focusInput();
-    if (text) {
-      // 先乐观显示用户消息
-      setS({ ...s, messages: [...s.messages, { id: -Date.now(), role: "user", text, draft: null, draft_error: null, confirmed_goal_id: null, confirmed_version: null, diff: null, created_at: 0 }] });
+    const payload: ChatImageIn[] | undefined = batch.length
+      ? batch.map((x) => ({ mime: x.mime, dataBase64: x.dataBase64, name: x.name }))
+      : undefined;
+    if (text !== null) {
+      const atts: ChatAttachment[] = batch.map((x) => ({ id: x.key, mime: x.mime, name: x.name, data_url: x.preview }));
+      setS({ ...s, messages: [...s.messages, { id: -Date.now(), role: "user", text: text.trim(), draft: null, draft_error: null, confirmed_goal_id: null, confirmed_version: null, diff: null, created_at: 0, attachments: atts }] });
       setInput("");
+      setPending([]);
     }
     const sid = newStreamId();
     sidRef.current = sid;
     setLive(""); setReason("");
-    try { setS(await chatSend(s.id, text, sid, (t) => setLive((x) => (x ?? "") + t), (t) => setReason((x) => x + t))); }
+    try { setS(await chatSend(s.id, text, sid, (t) => setLive((x) => (x ?? "") + t), (t) => setReason((x) => x + t), payload)); }
     catch (e) { setError(String(e)); setS(await chatGetSession(s.id).catch(() => s)); }
     finally { setBusy(false); setLive(null); setReason(""); sidRef.current = ""; }
+  };
+
+  const addFiles = async (files: FileList | File[]) => {
+    const list = [...files].filter((f) => f.type.startsWith("image/"));
+    if (!list.length) return;
+    setError("");
+    try {
+      const room = MAX_CHAT_IMAGES - pending.length;
+      if (room <= 0) { setError(`一次最多发送 ${MAX_CHAT_IMAGES} 张图片`); return; }
+      const next: PendingImage[] = [];
+      for (const f of list.slice(0, room)) next.push(await fileToPending(f));
+      setPending((p) => [...p, ...next].slice(0, MAX_CHAT_IMAGES));
+      if (list.length > room) setError(`一次最多发送 ${MAX_CHAT_IMAGES} 张图片，已加入前 ${room} 张`);
+    } catch (e) { setError(String(e)); }
   };
 
   const confirm = async (mid: number) => {
@@ -400,7 +455,8 @@ export function ChatPage({ onOpenGoal, onGoSettings, goalId, prefill, onBack }: 
     const m = mapOptionIndex(raw, curOpts);
     if (m && "other" in m) { setInput(""); setOtherHint(true); focusInput(); return; }
     setOtherHint(false);
-    send(m ? m.text : raw);
+    const imgs = pending;
+    send(m ? m.text : raw, imgs);
   };
   const noKey = error.startsWith("NO_KEY:");
 
@@ -451,7 +507,16 @@ export function ChatPage({ onOpenGoal, onGoSettings, goalId, prefill, onBack }: 
         {msgs.map((m) =>
           m.role === "user" ? (
             <div key={m.id} className={`row-user ${m.id < 0 ? "m-in" : ""}`}>
-              <div className="bubble-user">{m.text}</div>
+              <div className="bubble-user">
+                {!!m.attachments?.length && (
+                  <div className="bubble-imgs">
+                    {m.attachments.map((a) => (
+                      <img key={a.id} src={a.data_url} alt={a.name || "图片"} className="bubble-img" />
+                    ))}
+                  </div>
+                )}
+                {m.text}
+              </div>
               <div className="avatar cyan"><UserRound size={24} /></div>
             </div>
           ) : (
@@ -534,18 +599,39 @@ export function ChatPage({ onOpenGoal, onGoSettings, goalId, prefill, onBack }: 
         </div>
       )}
 
-      <div className="chat-input">
-        <textarea ref={inputRef} rows={1} value={input} onChange={(e) => setInput(e.target.value)}
-          placeholder={otherHint && curOpts?.opts.length ? "请直接输入你自己的答案…（Enter 发送）" : curOpts?.opts.length ? "点选上方选项，或输入序号（如 2、1,3）/ 自己的答案…" : "输入你的目标、需求或问题…（Enter 发送，Shift+Enter 换行）"}
-          aria-busy={busy} onKeyDown={(e) => {
-            // 回复生成中可以先打字，但 Enter 不发送
-            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); if (!busy && !busyRef.current) submit(input); }
-          }} />
-        {busy ? (
-          <button type="button" className="stop-btn" title="停止生成" onClick={stop}><Square size={16} fill="currentColor" />停止生成</button>
-        ) : (
-          <button type="button" className="send-btn" disabled={!input.trim()} onClick={() => submit(input)}><Send size={24} /></button>
+      <div className="chat-compose">
+        {pending.length > 0 && (
+          <div className="chat-thumbs">
+            {pending.map((x) => (
+              <div key={x.key} className="chat-thumb">
+                <img src={x.preview} alt={x.name} />
+                <button type="button" className="thumb-x" title="移除" disabled={busy} onClick={() => setPending((p) => p.filter((y) => y.key !== x.key))}><X size={12} /></button>
+              </div>
+            ))}
+          </div>
         )}
+        <div className="chat-input">
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/*" multiple hidden
+            onChange={(e) => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = ""; }} />
+          <button type="button" className="attach-btn" title="添加图片" disabled={busy || pending.length >= MAX_CHAT_IMAGES}
+            onClick={() => fileRef.current?.click()}><ImagePlus size={22} /></button>
+          <textarea ref={inputRef} rows={1} value={input} onChange={(e) => setInput(e.target.value)}
+            placeholder={otherHint && curOpts?.opts.length ? "请直接输入你自己的答案…（Enter 发送）" : curOpts?.opts.length ? "点选上方选项，或输入序号（如 2、3）/ 自己的答案" : "输入文字或添加图片…（Enter 发送，可粘贴截图）"}
+            aria-busy={busy}
+            onPaste={(e) => {
+              const files = [...e.clipboardData.items].filter((i) => i.type.startsWith("image/")).map((i) => i.getAsFile()).filter((f): f is File => !!f);
+              if (files.length) { e.preventDefault(); addFiles(files); }
+            }}
+            onKeyDown={(e) => {
+              // 回复生成中可以先打字，但 Enter 不发送
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); if (!busy && !busyRef.current) submit(input); }
+            }} />
+          {busy ? (
+            <button type="button" className="stop-btn" title="停止生成" onClick={stop}><Square size={16} fill="currentColor" />停止生成</button>
+          ) : (
+            <button type="button" className="send-btn" disabled={!input.trim() && !pending.length} onClick={() => submit(input)}><Send size={24} /></button>
+          )}
+        </div>
       </div>
       {undo && (
         <div className="undo-bar glass">

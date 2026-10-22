@@ -199,6 +199,14 @@ pub fn migrate(conn: &Connection) -> Result<(), rusqlite::Error> {
              COMMIT;",
         )?;
     }
+    if current < 10 {
+        conn.execute_batch(
+            "BEGIN;
+             ALTER TABLE chat_messages ADD COLUMN attachments_json TEXT;
+             INSERT INTO schema_migrations (version) VALUES (10);
+             COMMIT;",
+        )?;
+    }
     Ok(())
 }
 
@@ -269,7 +277,7 @@ mod tests {
         let fk: i64 = c.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r.get(0)).unwrap();
         assert_eq!(fk, 0);
         let mv: i64 = c.query_row("SELECT MAX(version) FROM schema_migrations", [], |r| r.get(0)).unwrap();
-        assert_eq!(mv, 9);
+        assert_eq!(mv, 10);
         migrate(&c).unwrap();
     }
 }
