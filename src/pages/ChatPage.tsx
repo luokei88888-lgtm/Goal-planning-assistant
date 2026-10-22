@@ -290,32 +290,84 @@ function DraftCard({ d, diff, confirmedVersion, confirmedId, busy, onConfirm, on
 
 const MAX_CHAT_IMAGES = 4;
 const MAX_EDGE = 1280;
-const JPEG_QUALITY = 0.8;
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+/** 约 1.5MP：小于此且已是小图时尽量保留原图，避免糊掉中文 */
+const KEEP_PIXELS = 1_500_000;
+const JPEG_QUALITY_HI = 0.92;
 
 type PendingImage = { key: string; mime: string; dataBase64: string; name: string; preview: string };
 
+function normalizeMime(m: string): string {
+  const x = (m || "").toLowerCase();
+  if (x === "image/jpg") return "image/jpeg";
+  if (x === "image/png" || x === "image/jpeg" || x === "image/gif" || x === "image/webp") return x;
+  return x.startsWith("image/") ? x : "image/png";
+}
+
+function isLosslessMime(m: string): boolean {
+  return m === "image/png" || m === "image/webp" || m === "image/gif";
+}
+
+async function blobToPending(blob: Blob, mime: string, name: string): Promise<PendingImage> {
+  if (blob.size > MAX_IMAGE_BYTES) throw new Error("图片过大，请换一张更小的");
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  let bin = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < buf.length; i += chunk) {
+    bin += String.fromCharCode(...buf.subarray(i, i + chunk));
+  }
+  const dataBase64 = btoa(bin);
+  return {
+    key: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    mime,
+    dataBase64,
+    name: name || (mime === "image/png" ? "image.png" : "image.jpg"),
+    preview: `data:${mime};base64,${dataBase64}`,
+  };
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, mime: string, quality?: number): Promise<Blob> {
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("压缩失败"))), mime, quality),
+  );
+}
+
 async function fileToPending(file: File): Promise<PendingImage> {
   if (!file.type.startsWith("image/")) throw new Error("只能发送图片文件");
+  const srcMime = normalizeMime(file.type);
   const bitmap = await createImageBitmap(file);
   try {
-    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
-    const w = Math.max(1, Math.round(bitmap.width * scale));
-    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const ow = bitmap.width;
+    const oh = bitmap.height;
+    const longest = Math.max(ow, oh);
+    const pixels = ow * oh;
+    const lossless = isLosslessMime(srcMime);
+
+    // 已够小：尽量原样发送（截图/UI 裁切保留清晰中文）
+    if (longest <= MAX_EDGE && file.size <= MAX_IMAGE_BYTES && (lossless || pixels <= KEEP_PIXELS)) {
+      return blobToPending(file, srcMime, file.name);
+    }
+
+    // 仅缩小、不放大
+    const scale = Math.min(1, MAX_EDGE / longest);
+    const w = Math.max(1, Math.round(ow * scale));
+    const h = Math.max(1, Math.round(oh * scale));
     const canvas = document.createElement("canvas");
-    canvas.width = w; canvas.height = h;
+    canvas.width = w;
+    canvas.height = h;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("无法处理图片");
     ctx.drawImage(bitmap, 0, 0, w, h);
-    const blob: Blob = await new Promise((resolve, reject) =>
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("压缩失败"))), "image/jpeg", JPEG_QUALITY),
-    );
-    if (blob.size > 4 * 1024 * 1024) throw new Error("图片过大，请换一张更小的");
-    const buf = new Uint8Array(await blob.arrayBuffer());
-    let bin = "";
-    for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
-    const dataBase64 = btoa(bin);
-    const preview = `data:image/jpeg;base64,${dataBase64}`;
-    return { key: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, mime: "image/jpeg", dataBase64, name: file.name || "image.jpg", preview };
+
+    // 小图/截图优先 PNG；大照片用高质量 JPEG
+    const preferPng = lossless || (ow < 1600 && oh < 1600) || pixels <= KEEP_PIXELS;
+    let outMime = preferPng ? "image/png" : "image/jpeg";
+    let blob = await canvasToBlob(canvas, outMime, outMime === "image/jpeg" ? JPEG_QUALITY_HI : undefined);
+    if (blob.size > MAX_IMAGE_BYTES && outMime === "image/png") {
+      outMime = "image/jpeg";
+      blob = await canvasToBlob(canvas, "image/jpeg", JPEG_QUALITY_HI);
+    }
+    return blobToPending(blob, outMime, file.name);
   } finally {
     bitmap.close();
   }

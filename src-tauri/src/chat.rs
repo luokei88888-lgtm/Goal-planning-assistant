@@ -66,6 +66,9 @@ pub struct ChatMessage {
     pub attachments: Vec<ChatAttachment>,
 }
 
+/// 本轮历史含图片时追加到 system，提醒模型认真读图、勿瞎猜文字
+pub const VISION_HINT: &str = "【看图要求】仔细看清图片中的文字与界面，先准确逐字读出可见文字，不要凭常见词猜测或脑补；看不清就明确说看不清，不要编造。";
+
 pub fn images_dir(app_data: &Path) -> PathBuf {
     app_data.join("chat_images")
 }
@@ -454,12 +457,13 @@ pub fn history_for_model(conn: &Connection, sid: i64, system: String, img_dir: O
         Some((role, _, _)) if role == "user" => {}
         _ => return Err("没有需要回复的消息，请先输入内容".into()),
     }
-    let mut out = vec![json!({"role":"system","content":system})];
+    let mut has_images = false;
+    let mut turns: Vec<Value> = Vec::with_capacity(rows.len());
     for (role, content, att_raw) in rows {
         if role == "user" {
             let metas = parse_meta_list(att_raw);
             if metas.is_empty() || img_dir.is_none() {
-                out.push(json!({"role":"user","content":content}));
+                turns.push(json!({"role":"user","content":content}));
             } else {
                 let dir = img_dir.unwrap();
                 let mut parts: Vec<Value> = Vec::new();
@@ -468,22 +472,30 @@ pub fn history_for_model(conn: &Connection, sid: i64, system: String, img_dir: O
                 }
                 for meta in &metas {
                     if let Some(att) = load_attachment(dir, meta) {
+                        has_images = true;
                         parts.push(json!({
                             "type": "image_url",
-                            "image_url": { "url": att.data_url, "detail": "auto" }
+                            "image_url": { "url": att.data_url, "detail": "high" }
                         }));
                     }
                 }
                 if parts.is_empty() {
-                    out.push(json!({"role":"user","content":content}));
+                    turns.push(json!({"role":"user","content":content}));
                 } else {
-                    out.push(json!({"role":"user","content":parts}));
+                    turns.push(json!({"role":"user","content":parts}));
                 }
             }
         } else {
-            out.push(json!({"role":role,"content":content}));
+            turns.push(json!({"role":role,"content":content}));
         }
     }
+    let system = if has_images {
+        format!("{system}\n\n{VISION_HINT}")
+    } else {
+        system
+    };
+    let mut out = vec![json!({"role":"system","content":system})];
+    out.extend(turns);
     Ok(out)
 }
 
@@ -603,7 +615,10 @@ mod tests {
         let arr = content.as_array().unwrap();
         assert_eq!(arr.len(), 1);
         assert_eq!(arr[0]["type"], "image_url");
+        assert_eq!(arr[0]["image_url"]["detail"], "high");
         assert!(arr[0]["image_url"]["url"].as_str().unwrap().starts_with("data:image/png;base64,"));
+        let sys = hist[0]["content"].as_str().unwrap();
+        assert!(sys.contains("看图要求") && sys.contains(VISION_HINT), "system should carry vision hint");
         let s = get_session(&conn, sid, "2026-10-14", Some(&dir)).unwrap();
         assert_eq!(s.messages[0].attachments.len(), 1);
         assert_eq!(s.title, "图片 ×1");
