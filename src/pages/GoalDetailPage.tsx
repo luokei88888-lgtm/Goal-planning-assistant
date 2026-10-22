@@ -409,9 +409,9 @@ function TodayPlanBlock({ detail, tasks }: { detail?: string | null; tasks?: str
                 <li key={k}><span className="today-col-check" aria-hidden /><span>{tk}</span></li>
               ))}
             </ul>
-          ) : (
+          ) : !plan.tip ? (
             <div className="today-col-empty">今天没有饮食安排</div>
-          )}
+          ) : null}
         </div>
       </div>
     </>
