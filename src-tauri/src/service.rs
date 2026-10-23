@@ -32,6 +32,8 @@ pub struct GoalSummary {
     pub rest: i64,
     pub today_done: bool,
     pub today_in_plan: bool,
+    /// 今天在计划内且为休息日（换休后也应为 true）
+    pub today_is_rest: bool,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -191,7 +193,8 @@ pub fn list_goals_by(conn: &Connection, today: &str, archived: bool) -> R<Vec<Go
     let mut out = Vec::new();
     for (id, title, icon, status) in goals {
         let v = version_for(conn, id, !archived)?;
-        let (mut done, mut total, mut rest, mut today_done, mut today_in_plan) = (0, 0, 0, false, false);
+        let (mut done, mut total, mut rest, mut today_done, mut today_in_plan, mut today_is_rest) =
+            (0, 0, 0, false, false, false);
         if let Some(v) = &v {
             let days = days_of(conn, v.id)?;
             total = days.len() as i64;
@@ -199,10 +202,24 @@ pub fn list_goals_by(conn: &Connection, today: &str, archived: bool) -> R<Vec<Go
             done = days.iter().filter(|d| d.checked && !d.is_rest).count() as i64;
             if let Some(t) = days.iter().find(|d| d.date == today) {
                 today_in_plan = true;
-                today_done = t.checked;
+                today_is_rest = t.is_rest;
+                // 休息日不要求打卡；today_done 仅对行动日有意义
+                today_done = t.checked && !t.is_rest;
             }
         }
-        out.push(GoalSummary { id, title, icon, status, version_no: v.map(|v| v.no), done, total, rest, today_done, today_in_plan });
+        out.push(GoalSummary {
+            id,
+            title,
+            icon,
+            status,
+            version_no: v.map(|v| v.no),
+            done,
+            total,
+            rest,
+            today_done,
+            today_in_plan,
+            today_is_rest,
+        });
     }
     Ok(out)
 }
@@ -1028,6 +1045,45 @@ mod tests {
         let moved = d.upcoming.iter().find(|x| x.id == rest.id).unwrap();
         assert!(!moved.is_rest);
         assert_eq!(moved.title, "力量");
+    }
+
+    #[test]
+    fn list_goals_today_is_rest_after_swap() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&conn).unwrap();
+        let days = vec![
+            NewDay { title: "力量".into(), detail: "练".into(), tasks: vec!["深蹲".into()], is_rest: false },
+            NewDay { title: "有氧".into(), detail: String::new(), tasks: vec!["跑".into()], is_rest: false },
+            NewDay { title: "休息".into(), detail: "拉伸".into(), tasks: vec![], is_rest: true },
+        ];
+        let g = NewGoal {
+            title: "列表休息态".into(), description: String::new(), icon: None, source: Some("manual".into()),
+            summary: String::new(), start_date: "2026-10-22".into(), days,
+        };
+        let id = create_goal_with_plan(&mut conn, &g, 1).unwrap();
+
+        // 行动日未打：不应标休息，today_done=false
+        let before = &list_goals(&conn, "2026-10-22").unwrap()[0];
+        assert_eq!(before.id, id);
+        assert!(before.today_in_plan);
+        assert!(!before.today_is_rest);
+        assert!(!before.today_done);
+
+        let d = get_goal_detail(&conn, id, "2026-10-22", 5).unwrap();
+        let today = d.today.as_ref().unwrap().clone();
+        let rest = d.upcoming.iter().find(|x| x.is_rest).unwrap().clone();
+        swap_plan_days(&mut conn, today.id, rest.id, "2026-10-22").unwrap();
+
+        let after = &list_goals(&conn, "2026-10-22").unwrap()[0];
+        assert!(after.today_in_plan);
+        assert!(after.today_is_rest, "换休后今天应为休息日");
+        assert!(!after.today_done, "休息日不应记为已打");
+
+        // 另一天仍是行动日未打
+        let mid = &list_goals(&conn, "2026-10-23").unwrap()[0];
+        assert!(mid.today_in_plan);
+        assert!(!mid.today_is_rest);
+        assert!(!mid.today_done);
     }
 
     #[test]

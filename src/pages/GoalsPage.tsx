@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { askConfirm } from "../components/ConfirmDialog";
 import { useSlider } from "../lib/motion";
-import { Flame, NotebookPen, BookOpen, Target, CalendarDays, Circle, CircleCheck, Sparkles, Download, Archive, ArchiveRestore, LayoutTemplate, Trophy, type LucideIcon } from "lucide-react";
+import { Flame, NotebookPen, BookOpen, Target, CalendarDays, Circle, CircleCheck, Coffee, Sparkles, Download, Archive, ArchiveRestore, LayoutTemplate, Trophy, type LucideIcon } from "lucide-react";
 import { WeatherCard } from "../components/WeatherCard";
 import { listGoals, importSampleGoal, restoreGoal, type GoalSummary } from "../lib/tauri";
 
@@ -41,7 +41,7 @@ export function GoalsPage({ onOpenGoal, onTemplates }: { onOpenGoal: (id: number
   const card = (g: GoalSummary, i: number) => {
     const arch = g.status === "archived";
     const done = g.status === "completed";
-    const tone = arch || done ? "cyan" : g.today_done ? "cyan" : "pink";
+    const tone = arch || done ? "cyan" : g.today_is_rest || g.today_done ? "cyan" : "pink";
     const Icon = ICONS[g.icon] ?? Target;
     const due = Math.max(0, g.total - g.rest);
     const rate = due ? Math.round((g.done / due) * 100) : 0;
@@ -68,8 +68,14 @@ export function GoalsPage({ onOpenGoal, onTemplates }: { onOpenGoal: (id: number
             <span className="today-pill done-pill">最终 {rate}%<Trophy size={18} /></span>
           ) : (
             <span className={`today-pill neon-${tone}`}>
-              {!g.today_in_plan ? "今天无计划" : g.today_done ? "今天已打" : "今天未打"}
-              {g.today_done ? <CircleCheck size={20} /> : <Circle size={20} />}
+              {!g.today_in_plan
+                ? "今天无计划"
+                : g.today_is_rest
+                  ? "今天休息"
+                  : g.today_done
+                    ? "今天已打"
+                    : "今天未打"}
+              {g.today_is_rest ? <Coffee size={20} /> : g.today_done ? <CircleCheck size={20} /> : <Circle size={20} />}
             </span>
           )}
           <div className="bar"><span className={done ? "fill-green" : `fill-${tone}`} style={{ width: `${rate}%` }} /></div>

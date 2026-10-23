@@ -4,7 +4,7 @@ export type AppInfo = { name: string; version: string; db_path: string; db_ready
 
 export type GoalSummary = {
   id: number; title: string; icon: string; status: string; version_no: number | null;
-  done: number; total: number; rest: number; today_done: boolean; today_in_plan: boolean;
+  done: number; total: number; rest: number; today_done: boolean; today_in_plan: boolean; today_is_rest: boolean;
 };
 
 export type DayItem = {
