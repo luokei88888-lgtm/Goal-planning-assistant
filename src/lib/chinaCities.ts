@@ -238,9 +238,79 @@ export const CHINA_REGIONS: ChinaProvince[] = [
             "longitude": 114.6483
           },
           {
+            "name": "井陉矿区",
+            "latitude": 38.0646,
+            "longitude": 114.0623
+          },
+          {
+            "name": "井陉县",
+            "latitude": 38.0322,
+            "longitude": 114.1452
+          },
+          {
             "name": "正定县",
             "latitude": 38.1462,
             "longitude": 114.5708
+          },
+          {
+            "name": "行唐县",
+            "latitude": 38.4374,
+            "longitude": 114.5527
+          },
+          {
+            "name": "灵寿县",
+            "latitude": 38.3063,
+            "longitude": 114.3827
+          },
+          {
+            "name": "高邑县",
+            "latitude": 37.6151,
+            "longitude": 114.6107
+          },
+          {
+            "name": "深泽县",
+            "latitude": 38.1841,
+            "longitude": 115.2009
+          },
+          {
+            "name": "赞皇县",
+            "latitude": 37.6657,
+            "longitude": 114.386
+          },
+          {
+            "name": "无极县",
+            "latitude": 38.1763,
+            "longitude": 114.9754
+          },
+          {
+            "name": "平山县",
+            "latitude": 38.2471,
+            "longitude": 114.1957
+          },
+          {
+            "name": "元氏县",
+            "latitude": 37.7665,
+            "longitude": 114.5055
+          },
+          {
+            "name": "赵县",
+            "latitude": 37.7564,
+            "longitude": 114.7763
+          },
+          {
+            "name": "辛集市",
+            "latitude": 37.9432,
+            "longitude": 115.2176
+          },
+          {
+            "name": "晋州市",
+            "latitude": 38.0336,
+            "longitude": 115.0442
+          },
+          {
+            "name": "新乐市",
+            "latitude": 38.3439,
+            "longitude": 114.6838
           },
           {
             "name": "市区",
@@ -288,6 +358,41 @@ export const CHINA_REGIONS: ChinaProvince[] = [
             "longitude": 118.4604
           },
           {
+            "name": "滦南县",
+            "latitude": 39.5039,
+            "longitude": 118.6837
+          },
+          {
+            "name": "乐亭县",
+            "latitude": 39.4256,
+            "longitude": 118.9125
+          },
+          {
+            "name": "迁西县",
+            "latitude": 40.1415,
+            "longitude": 118.3146
+          },
+          {
+            "name": "玉田县",
+            "latitude": 39.9005,
+            "longitude": 117.7384
+          },
+          {
+            "name": "遵化市",
+            "latitude": 40.1891,
+            "longitude": 117.9659
+          },
+          {
+            "name": "迁安市",
+            "latitude": 39.9984,
+            "longitude": 118.7007
+          },
+          {
+            "name": "滦州市",
+            "latitude": 39.7406,
+            "longitude": 118.7035
+          },
+          {
             "name": "市区",
             "latitude": 39.6309,
             "longitude": 118.1802
@@ -316,6 +421,21 @@ export const CHINA_REGIONS: ChinaProvince[] = [
             "name": "抚宁区",
             "latitude": 39.876,
             "longitude": 119.2448
+          },
+          {
+            "name": "青龙满族自治县",
+            "latitude": 40.4075,
+            "longitude": 118.9496
+          },
+          {
+            "name": "昌黎县",
+            "latitude": 39.7128,
+            "longitude": 119.1626
+          },
+          {
+            "name": "卢龙县",
+            "latitude": 39.8916,
+            "longitude": 118.8928
           },
           {
             "name": "市区",
@@ -348,9 +468,179 @@ export const CHINA_REGIONS: ChinaProvince[] = [
             "longitude": 114.2128
           },
           {
+            "name": "肥乡区",
+            "latitude": 36.5558,
+            "longitude": 114.8
+          },
+          {
+            "name": "永年区",
+            "latitude": 36.7764,
+            "longitude": 114.4892
+          },
+          {
+            "name": "临漳县",
+            "latitude": 36.3346,
+            "longitude": 114.6195
+          },
+          {
+            "name": "成安县",
+            "latitude": 36.4441,
+            "longitude": 114.67
+          },
+          {
+            "name": "大名县",
+            "latitude": 36.2855,
+            "longitude": 115.1478
+          },
+          {
+            "name": "涉县",
+            "latitude": 36.5849,
+            "longitude": 113.6915
+          },
+          {
+            "name": "磁县",
+            "latitude": 36.3747,
+            "longitude": 114.3739
+          },
+          {
+            "name": "邱县",
+            "latitude": 36.8132,
+            "longitude": 115.1686
+          },
+          {
+            "name": "鸡泽县",
+            "latitude": 36.9104,
+            "longitude": 114.8894
+          },
+          {
+            "name": "广平县",
+            "latitude": 36.4836,
+            "longitude": 114.9486
+          },
+          {
+            "name": "馆陶县",
+            "latitude": 36.7483,
+            "longitude": 115.2823
+          },
+          {
+            "name": "魏县",
+            "latitude": 36.3599,
+            "longitude": 114.9389
+          },
+          {
+            "name": "曲周县",
+            "latitude": 36.7663,
+            "longitude": 114.9505
+          },
+          {
+            "name": "武安市",
+            "latitude": 36.6965,
+            "longitude": 114.2035
+          },
+          {
             "name": "市区",
             "latitude": 36.6256,
             "longitude": 114.5391
+          }
+        ]
+      },
+      {
+        "name": "邢台市",
+        "districts": [
+          {
+            "name": "襄都区",
+            "latitude": 37.068,
+            "longitude": 114.504
+          },
+          {
+            "name": "信都区",
+            "latitude": 37.0577,
+            "longitude": 114.4684
+          },
+          {
+            "name": "任泽区",
+            "latitude": 37.1209,
+            "longitude": 114.6713
+          },
+          {
+            "name": "南和区",
+            "latitude": 37.005,
+            "longitude": 114.6837
+          },
+          {
+            "name": "临城县",
+            "latitude": 37.4443,
+            "longitude": 114.4989
+          },
+          {
+            "name": "内丘县",
+            "latitude": 37.2867,
+            "longitude": 114.5122
+          },
+          {
+            "name": "柏乡县",
+            "latitude": 37.4824,
+            "longitude": 114.6934
+          },
+          {
+            "name": "隆尧县",
+            "latitude": 37.3502,
+            "longitude": 114.7704
+          },
+          {
+            "name": "宁晋县",
+            "latitude": 37.6198,
+            "longitude": 114.9194
+          },
+          {
+            "name": "巨鹿县",
+            "latitude": 37.2209,
+            "longitude": 115.038
+          },
+          {
+            "name": "新河县",
+            "latitude": 37.5203,
+            "longitude": 115.2508
+          },
+          {
+            "name": "广宗县",
+            "latitude": 37.0751,
+            "longitude": 115.1426
+          },
+          {
+            "name": "平乡县",
+            "latitude": 37.0632,
+            "longitude": 115.03
+          },
+          {
+            "name": "威县",
+            "latitude": 36.9753,
+            "longitude": 115.2667
+          },
+          {
+            "name": "清河县",
+            "latitude": 37.04,
+            "longitude": 115.6672
+          },
+          {
+            "name": "临西县",
+            "latitude": 36.8708,
+            "longitude": 115.5012
+          },
+          {
+            "name": "南宫市",
+            "latitude": 37.359,
+            "longitude": 115.4087
+          },
+          {
+            "name": "沙河市",
+            "latitude": 36.8549,
+            "longitude": 114.5033
+          },
+          {
+            "name": "市区",
+            "latitude": 37.0706,
+            "longitude": 114.5045
           }
         ]
       },
@@ -383,6 +673,101 @@ export const CHINA_REGIONS: ChinaProvince[] = [
             "longitude": 115.6559
           },
           {
+            "name": "涞水县",
+            "latitude": 39.3942,
+            "longitude": 115.7139
+          },
+          {
+            "name": "阜平县",
+            "latitude": 38.8491,
+            "longitude": 114.1951
+          },
+          {
+            "name": "定兴县",
+            "latitude": 39.2631,
+            "longitude": 115.8081
+          },
+          {
+            "name": "唐县",
+            "latitude": 38.748,
+            "longitude": 114.9829
+          },
+          {
+            "name": "高阳县",
+            "latitude": 38.7001,
+            "longitude": 115.7789
+          },
+          {
+            "name": "容城县",
+            "latitude": 39.0428,
+            "longitude": 115.8616
+          },
+          {
+            "name": "涞源县",
+            "latitude": 39.36,
+            "longitude": 114.6943
+          },
+          {
+            "name": "望都县",
+            "latitude": 38.6957,
+            "longitude": 115.1554
+          },
+          {
+            "name": "安新县",
+            "latitude": 38.9355,
+            "longitude": 115.9356
+          },
+          {
+            "name": "易县",
+            "latitude": 39.3529,
+            "longitude": 115.4975
+          },
+          {
+            "name": "曲阳县",
+            "latitude": 38.6221,
+            "longitude": 114.745
+          },
+          {
+            "name": "蠡县",
+            "latitude": 38.488,
+            "longitude": 115.5836
+          },
+          {
+            "name": "顺平县",
+            "latitude": 38.8375,
+            "longitude": 115.135
+          },
+          {
+            "name": "博野县",
+            "latitude": 38.4575,
+            "longitude": 115.4642
+          },
+          {
+            "name": "雄县",
+            "latitude": 38.9944,
+            "longitude": 116.1088
+          },
+          {
+            "name": "涿州市",
+            "latitude": 39.4853,
+            "longitude": 115.9744
+          },
+          {
+            "name": "定州市",
+            "latitude": 38.5162,
+            "longitude": 114.9902
+          },
+          {
+            "name": "安国市",
+            "latitude": 38.4184,
+            "longitude": 115.3266
+          },
+          {
+            "name": "高碑店市",
+            "latitude": 39.3265,
+            "longitude": 115.8737
+          },
+          {
             "name": "市区",
             "latitude": 38.8738,
             "longitude": 115.4646
@@ -413,6 +798,66 @@ export const CHINA_REGIONS: ChinaProvince[] = [
             "longitude": 115.2874
           },
           {
+            "name": "万全区",
+            "latitude": 40.7669,
+            "longitude": 114.7405
+          },
+          {
+            "name": "崇礼区",
+            "latitude": 40.9747,
+            "longitude": 115.2826
+          },
+          {
+            "name": "张北县",
+            "latitude": 41.1585,
+            "longitude": 114.7201
+          },
+          {
+            "name": "康保县",
+            "latitude": 41.8504,
+            "longitude": 114.6003
+          },
+          {
+            "name": "沽源县",
+            "latitude": 41.6696,
+            "longitude": 115.6887
+          },
+          {
+            "name": "尚义县",
+            "latitude": 41.0762,
+            "longitude": 113.9687
+          },
+          {
+            "name": "蔚县",
+            "latitude": 39.8407,
+            "longitude": 114.549
+          },
+          {
+            "name": "阳原县",
+            "latitude": 40.1135,
+            "longitude": 114.1703
+          },
+          {
+            "name": "怀安县",
+            "latitude": 40.6742,
+            "longitude": 114.3857
+          },
+          {
+            "name": "怀来县",
+            "latitude": 40.4154,
+            "longitude": 115.5178
+          },
+          {
+            "name": "涿鹿县",
+            "latitude": 40.3787,
+            "longitude": 115.2194
+          },
+          {
+            "name": "赤城县",
+            "latitude": 40.9129,
+            "longitude": 115.8325
+          },
+          {
             "name": "市区",
             "latitude": 40.8244,
             "longitude": 114.8844
@@ -431,6 +876,51 @@ export const CHINA_REGIONS: ChinaProvince[] = [
             "name": "双滦区",
             "latitude": 40.9593,
             "longitude": 117.7989
+          },
+          {
+            "name": "鹰手营子矿区",
+            "latitude": 40.5464,
+            "longitude": 117.6611
+          },
+          {
+            "name": "承德县",
+            "latitude": 40.7682,
+            "longitude": 118.1738
+          },
+          {
+            "name": "兴隆县",
+            "latitude": 40.4173,
+            "longitude": 117.5009
+          },
+          {
+            "name": "滦平县",
+            "latitude": 40.9415,
+            "longitude": 117.3328
+          },
+          {
+            "name": "隆化县",
+            "latitude": 41.3138,
+            "longitude": 117.7389
+          },
+          {
+            "name": "丰宁满族自治县",
+            "latitude": 41.2099,
+            "longitude": 116.6512
+          },
+          {
+            "name": "宽城满族自治县",
+            "latitude": 40.6114,
+            "longitude": 118.4853
+          },
+          {
+            "name": "围场满族蒙古族自治县",
+            "latitude": 41.9494,
+            "longitude": 117.7601
+          },
+          {
+            "name": "平泉市",
+            "latitude": 41.0055,
+            "longitude": 118.702
           },
           {
             "name": "市区",
@@ -453,6 +943,76 @@ export const CHINA_REGIONS: ChinaProvince[] = [
             "longitude": 116.8576
           },
           {
+            "name": "沧县",
+            "latitude": 38.3044,
+            "longitude": 116.8785
+          },
+          {
+            "name": "青县",
+            "latitude": 38.5834,
+            "longitude": 116.8033
+          },
+          {
+            "name": "东光县",
+            "latitude": 37.8881,
+            "longitude": 116.5371
+          },
+          {
+            "name": "海兴县",
+            "latitude": 38.1415,
+            "longitude": 117.4964
+          },
+          {
+            "name": "盐山县",
+            "latitude": 38.0581,
+            "longitude": 117.2306
+          },
+          {
+            "name": "肃宁县",
+            "latitude": 38.4228,
+            "longitude": 115.8297
+          },
+          {
+            "name": "南皮县",
+            "latitude": 38.0384,
+            "longitude": 116.7084
+          },
+          {
+            "name": "吴桥县",
+            "latitude": 37.6277,
+            "longitude": 116.3915
+          },
+          {
+            "name": "献县",
+            "latitude": 38.1897,
+            "longitude": 116.1227
+          },
+          {
+            "name": "孟村回族自治县",
+            "latitude": 38.0534,
+            "longitude": 117.1042
+          },
+          {
+            "name": "泊头市",
+            "latitude": 38.0835,
+            "longitude": 116.5783
+          },
+          {
+            "name": "任丘市",
+            "latitude": 38.7114,
+            "longitude": 116.1053
+          },
+          {
+            "name": "黄骅市",
+            "latitude": 38.3714,
+            "longitude": 117.33
+          },
+          {
+            "name": "河间市",
+            "latitude": 38.4455,
+            "longitude": 116.0994
+          },
+          {
             "name": "市区",
             "latitude": 38.3044,
             "longitude": 116.8388
@@ -473,9 +1033,34 @@ export const CHINA_REGIONS: ChinaProvince[] = [
             "longitude": 116.7106
           },
           {
-            "name": "三河市",
-            "latitude": 39.9827,
-            "longitude": 117.0783
+            "name": "固安县",
+            "latitude": 39.4382,
+            "longitude": 116.2987
+          },
+          {
+            "name": "永清县",
+            "latitude": 39.3217,
+            "longitude": 116.4981
+          },
+          {
+            "name": "香河县",
+            "latitude": 39.7614,
+            "longitude": 117.0064
+          },
+          {
+            "name": "大城县",
+            "latitude": 38.7047,
+            "longitude": 116.6536
+          },
+          {
+            "name": "文安县",
+            "latitude": 38.8733,
+            "longitude": 116.4585
+          },
+          {
+            "name": "大厂回族自治县",
+            "latitude": 39.8865,
+            "longitude": 116.9896
           },
           {
             "name": "霸州市",
@@ -483,9 +1068,9 @@ export const CHINA_REGIONS: ChinaProvince[] = [
             "longitude": 116.3915
           },
           {
-            "name": "固安县",
-            "latitude": 39.4382,
-            "longitude": 116.2987
+            "name": "三河市",
+            "latitude": 39.9827,
+            "longitude": 117.0783
           },
           {
             "name": "市区",
@@ -503,19 +1088,59 @@ export const CHINA_REGIONS: ChinaProvince[] = [
             "longitude": 115.6753
           },
           {
+            "name": "冀州区",
+            "latitude": 37.5508,
+            "longitude": 115.5793
+          },
+          {
+            "name": "枣强县",
+            "latitude": 37.5133,
+            "longitude": 115.7242
+          },
+          {
+            "name": "武邑县",
+            "latitude": 37.8018,
+            "longitude": 115.8875
+          },
+          {
+            "name": "武强县",
+            "latitude": 38.0414,
+            "longitude": 115.9702
+          },
+          {
+            "name": "饶阳县",
+            "latitude": 38.2352,
+            "longitude": 115.7258
+          },
+          {
+            "name": "安平县",
+            "latitude": 38.2345,
+            "longitude": 115.5192
+          },
+          {
+            "name": "故城县",
+            "latitude": 37.3509,
+            "longitude": 115.9658
+          },
+          {
+            "name": "景县",
+            "latitude": 37.6923,
+            "longitude": 116.2706
+          },
+          {
+            "name": "阜城县",
+            "latitude": 37.8699,
+            "longitude": 116.1766
+          },
+          {
+            "name": "深州市",
+            "latitude": 38.0015,
+            "longitude": 115.5596
+          },
+          {
             "name": "市区",
             "latitude": 37.7389,
             "longitude": 115.6702
-          }
-        ]
-      },
-      {
-        "name": "邢台市",
-        "districts": [
-          {
-            "name": "市区",
-            "latitude": 37.0706,
-            "longitude": 114.5045
           }
         ]
       }
