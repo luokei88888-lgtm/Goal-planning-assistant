@@ -680,21 +680,6 @@ html:not([data-theme="neon"]) .row-label .row-ico { color: var(--t-accent); }
 @media (max-width: 720px) {
   .city-cascade { grid-template-columns: 1fr; }
 }
-.city-other-toggle {
-  display: inline-flex; align-items: center; gap: 6px;
-  margin-top: 10px; padding: 0; border: none; background: transparent;
-  color: var(--muted); cursor: pointer; font-size: 13px;
-}
-.city-other-toggle:hover { color: var(--cyan); }
-.city-other-toggle .rot { transform: rotate(180deg); }
-.city-other-toggle svg { transition: transform .18s; flex: none; }
-.city-search { display: flex; gap: 10px; margin-top: 10px; }
-.city-search input { flex: 1; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(var(--k-5-6-15), 0.6); outline: none; }
-.city-search input:focus { border-color: var(--cyan); }
-.city-results { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; max-height: 240px; overflow-y: auto; }
-.city-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(var(--k-10-12-28), 0.5); color: var(--text); text-align: left; }
-.city-item:hover { border-color: var(--cyan); }
-.city-item em { margin-left: auto; font-style: normal; font-size: 12px; color: var(--muted); }
 
 /* ===== 模型名选择 ===== */
 .model-picker { position: relative; }
