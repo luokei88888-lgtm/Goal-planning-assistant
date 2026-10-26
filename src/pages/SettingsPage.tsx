@@ -13,26 +13,69 @@ import { TimePicker } from "../components/TimePicker";
 import { useAnchoredPos, useDismiss } from "../components/popover";
 import { saveReduceMotion, userReduceMotion, useReduced } from "../lib/motion";
 import { getAppInfo, getSettings, saveSettings, deleteApiKey, testConnection, factoryReset, exportBackup, inspectBackup, importBackup, type AppInfo, type SettingsView, type BackupInfo, getReminderSettings, saveReminderSettings, type ReminderSettings, weatherGetSettings, weatherSaveSettings, weatherSearchCity, type WeatherSettings, type City, fetchModels, getCloseAction, setCloseAction, type CloseAction, getAutostart, setAutostart, type AutostartStatus } from "../lib/tauri";
+import { PROVINCE_OPTIONS, getCities, getDistricts, matchCitySelection, toWeatherCity } from "../lib/chinaCities";
 
 function WeatherPanel() {
   const [ws, setWs] = useState<WeatherSettings | null>(null);
+  const [prov, setProv] = useState("");
+  const [city, setCity] = useState("");
+  const [dist, setDist] = useState("");
+  const [otherOpen, setOtherOpen] = useState(false);
   const [q, setQ] = useState("");
   const [res, setRes] = useState<City[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  useEffect(() => { weatherGetSettings().then(setWs).catch((e) => setMsg({ ok: false, text: String(e) })); }, []);
+
+  useEffect(() => {
+    weatherGetSettings()
+      .then((s) => {
+        setWs(s);
+        const m = matchCitySelection(s.city);
+        if (m) { setProv(m.province); setCity(m.city); setDist(m.district); }
+      })
+      .catch((e) => setMsg({ ok: false, text: String(e) }));
+  }, []);
+
   const put = async (next: WeatherSettings, text?: string) => {
     setMsg(null);
-    try { setWs(await weatherSaveSettings(next)); if (text) setMsg({ ok: true, text }); } catch (e) { setMsg({ ok: false, text: String(e) }); }
+    try { setWs(await weatherSaveSettings(next)); if (text) setMsg({ ok: true, text }); }
+    catch (e) { setMsg({ ok: false, text: String(e) }); }
   };
+
+  const applyCascade = (p: string, c: string, d: string) => {
+    if (!ws || !p || !c || !d) return;
+    const next = toWeatherCity(p, c, d);
+    if (!next) return;
+    put({ ...ws, city: next }, `已切换到 ${next.name}`);
+  };
+
+  const onProv = (v: string) => {
+    setProv(v); setCity(""); setDist("");
+  };
+  const onCity = (v: string) => {
+    setCity(v); setDist("");
+  };
+  const onDist = (v: string) => {
+    setDist(v);
+    applyCascade(prov, city, v);
+  };
+
   const search = async () => {
     if (!q.trim()) return;
     setBusy(true); setMsg(null);
-    try { const r = await weatherSearchCity(q); setRes(r); if (!r.length) setMsg({ ok: false, text: "没找到这个地名，换个写法试试（如「丰台」「海淀区」）" }); }
-    catch (e) { setMsg({ ok: false, text: String(e) }); } finally { setBusy(false); }
+    try {
+      const r = await weatherSearchCity(q);
+      setRes(r);
+      if (!r.length) setMsg({ ok: false, text: "没找到这个地名，换个写法试试（如「丰台」「东京」）" });
+    } catch (e) { setMsg({ ok: false, text: String(e) }); }
+    finally { setBusy(false); }
   };
+
   if (!ws) return null;
   const label = (c: City) => [c.name, c.admin, c.country].filter((x, i, a) => x && a.indexOf(x) === i).join(" · ");
+  const cityOpts = getCities(prov).map((c) => ({ value: c.name, label: c.name }));
+  const distOpts = getDistricts(prov, city).map((d) => ({ value: d.name, label: d.name }));
+
   return (
     <section className="glass neon-cyan panel">
       <div className="panel-title cyan-text"><CloudSun size={20} />天气</div>
@@ -41,19 +84,61 @@ function WeatherPanel() {
         <input type="checkbox" className="switch" checked={ws.enabled} onChange={(e) => put({ ...ws, enabled: e.target.checked })} />
       </label>
       <div className="muted"><MapPin size={14} /> 当前城市：<b className="cyan-text">{label(ws.city)}</b>（{ws.city.latitude.toFixed(2)}, {ws.city.longitude.toFixed(2)}）</div>
-      <div className="city-search">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索城市/区县，如：北京、丰台、上海"
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) search(); }} />
-        <button type="button" className="ghost-btn neon-cyan sm" disabled={busy || !q.trim()} onClick={search}><Search size={15} />{busy ? "搜索中…" : "搜索"}</button>
+      <div className="city-cascade">
+        <NeonSelect
+          aria-label="省份"
+          className="wide"
+          value={prov}
+          placeholder="选择省/直辖市"
+          onChange={onProv}
+          options={PROVINCE_OPTIONS}
+        />
+        <NeonSelect
+          aria-label="城市"
+          className="wide"
+          value={city}
+          placeholder="选择城市"
+          disabled={!prov}
+          onChange={onCity}
+          options={cityOpts}
+        />
+        <NeonSelect
+          aria-label="区县"
+          className="wide"
+          value={dist}
+          placeholder="选择区/县"
+          disabled={!city || distOpts.length === 0}
+          onChange={onDist}
+          options={distOpts}
+        />
       </div>
-      {res && res.length > 0 && (
-        <div className="city-results">
-          {res.map((c, i) => (
-            <button key={i} type="button" className="city-item" onClick={() => { setRes(null); setQ(""); put({ ...ws, city: c }, `已切换到 ${c.name}`); }}>
-              <MapPin size={14} />{label(c)}<em>{c.latitude.toFixed(2)}, {c.longitude.toFixed(2)}</em>
-            </button>
-          ))}
-        </div>
+      <button type="button" className="city-other-toggle muted" onClick={() => setOtherOpen((o) => !o)}>
+        <ChevronDown size={14} className={otherOpen ? "rot" : ""} />
+        {otherOpen ? "收起其他城市搜索" : "其他城市（联网搜索，备用）"}
+      </button>
+      {otherOpen && (
+        <>
+          <div className="city-search">
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索国内外地名，如：东京、纽约"
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) search(); }} />
+            <button type="button" className="ghost-btn neon-cyan sm" disabled={busy || !q.trim()} onClick={search}><Search size={15} />{busy ? "搜索中…" : "搜索"}</button>
+          </div>
+          {res && res.length > 0 && (
+            <div className="city-results">
+              {res.map((c, i) => (
+                <button key={i} type="button" className="city-item" onClick={() => {
+                  setRes(null); setQ("");
+                  const m = matchCitySelection(c);
+                  if (m) { setProv(m.province); setCity(m.city); setDist(m.district); }
+                  else { setProv(""); setCity(""); setDist(""); }
+                  put({ ...ws, city: c }, `已切换到 ${c.name}`);
+                }}>
+                  <MapPin size={14} />{label(c)}<em>{c.latitude.toFixed(2)}, {c.longitude.toFixed(2)}</em>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       )}
       {msg && <div className={msg.ok ? "ok-line" : "error-line"}>{msg.text}</div>}
     </section>
