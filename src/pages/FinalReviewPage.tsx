@@ -4,6 +4,7 @@ import {
   finalView, saveFinalReview, generateFinalReview, chatStop, newStreamId, md,
   type FinalView, type ReviewText,
 } from "../lib/tauri";
+import { Markdown } from "../components/Markdown";
 
 type Props = { goalId: number; onBack: () => void; onGoSettings: () => void };
 
@@ -134,13 +135,15 @@ export function FinalReviewPage({ goalId, onBack, onGoSettings }: Props) {
         {live !== null && (
           <section className="rv-ai glass neon-pink">
             <div className="rv-ai-head"><Loader size={18} className="spin" />助手点评中…</div>
-            <div className="pre">{live}<span className="caret" /></div>
+            <div className="rv-ai-body md-bubble">
+              {live ? <Markdown text={live} /> : null}<span className="caret" />
+            </div>
           </section>
         )}
         {live === null && comment && (
           <section className="rv-ai glass neon-pink">
             <div className="rv-ai-head"><Bot size={18} />助手点评</div>
-            <div className="pre">{comment}</div>
+            <div className="rv-ai-body md-bubble"><Markdown text={comment} /></div>
           </section>
         )}
       </div>

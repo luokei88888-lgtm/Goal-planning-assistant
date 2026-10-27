@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, CalendarCheck, Save, Bot, Loader, RefreshCw, History, Coffee, Check, X, Sun, Square } from "lucide-react";
 import { weekView, saveReview, reviewAi, chatStop, newStreamId, listReviews, md, shiftDate, type WeekView, type Review, type ReviewText } from "../lib/tauri";
+import { Markdown } from "../components/Markdown";
 
 type Props = { goalId: number; onBack: () => void; onRevise: (prefill: string) => void; onGoSettings: () => void };
 
@@ -119,13 +120,15 @@ export function ReviewPage({ goalId, onBack, onRevise, onGoSettings }: Props) {
             {live !== null && (
               <section className="rv-ai glass neon-pink">
                 <div className="rv-ai-head"><Loader size={18} className="spin" />助手点评中…</div>
-                <div className="pre">{live}<span className="caret" /></div>
+                <div className="rv-ai-body md-bubble">
+                  {live ? <Markdown text={live} /> : null}<span className="caret" />
+                </div>
               </section>
             )}
             {live === null && comment && (
               <section className="rv-ai glass neon-pink">
                 <div className="rv-ai-head"><Bot size={18} />助手点评</div>
-                <div className="pre">{comment}</div>
+                <div className="rv-ai-body md-bubble"><Markdown text={comment} /></div>
                 {!w.readonly && (
                   <button type="button" className="checkin-btn small fit" onClick={() => onRevise(`参考这次周复盘（${md(w.week_start)}–${md(w.week_end)}）的建议调整计划：${comment.replace(/\s+/g, " ").slice(0, 300)}`)}>
                     <RefreshCw size={18} />据此改方案
