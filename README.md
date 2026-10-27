@@ -33,7 +33,7 @@
 - **已完成列表**：已打卡的天收在底栏的「已完成」入口里，展开查看、可收起。
 
 ### 复盘与总结
-- **周复盘**：按周查看完成/漏打情况，手写「顺利的 / 困难的 / 下周打算」，可请助手点评，也可以从点评直接去改方案；可翻看历史周复盘。
+- **周复盘**：按周查看完成/漏打情况，手写「顺利的 / 困难的 / 下周打算」，可请助手点评（Markdown 分段排版：本周判断 / 卡点 / 下周建议），也可以从点评直接去改方案；可翻看历史周复盘。结项最终总结的助手点评同样用 Markdown 排版。
 - **最终总结**：计划结束后，可回顾整个计划的每一天，写下总结，或让助手生成一份总结。
 
 ### 统计
@@ -140,7 +140,7 @@ cd src-tauri && cargo test   # 后端单元测试
 npm run tauri build
 ```
 
-NSIS 安装包输出到 `src-tauri/target/release/bundle/nsis/目标计划助手_0.2.4_x64-setup.exe`（上传 Releases 时另存为 `GoalPlanAssistant_0.2.4_x64-setup.exe`）。
+NSIS 安装包输出到 `src-tauri/target/release/bundle/nsis/目标计划助手_0.2.5_x64-setup.exe`（上传 Releases 时另存为 `GoalPlanAssistant_0.2.5_x64-setup.exe`）。
 
 ### 技术栈
 
